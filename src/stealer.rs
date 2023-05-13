@@ -1,146 +1,65 @@
-use serde::Deserialize;
-use axum::{async_trait, Json};
-use axum::response::{IntoResponse, Response};
-use axum::http::StatusCode;
-use crate::{profile, Profile};
+use crate::{Profile};
 use anyhow::Result;
-use reqwest::Client;
-use reqwest::header::{CONTENT_TYPE, COOKIE, USER_AGENT};
+use chromiumoxide::{Browser, BrowserConfig};
+use crate::websocket::WebsocketWrapper;
+use chromiumoxide::cdp::browser_protocol::network::CookieParam;
+use futures::StreamExt;
 
-#[derive(Deserialize)]
-pub struct StealBody {
-    cookie: String,
-    profile_url: String,
+
+pub async fn headless_name_steal(wrapper: &mut WebsocketWrapper, our_url: &str, name: &str) -> Result<()> {
+    wrapper.log("Launching new headless chrome instance...").await;
+    let (mut browser, mut handler) =
+        Browser::launch(BrowserConfig::builder().with_head().build().unwrap()).await?;
+
+    let handle = tokio::task::spawn(async move {
+        while let Some(h) = handler.next().await {
+            if h.is_err() {
+                break;
+            }
+        }
+    });
+
+
+    wrapper.log("Launched headless chrome instance, setting up cookie...").await;
+
+    let page = browser.new_page("about:blank").await?;
+    page.set_cookie(CookieParam::new("steamLoginSecure", &wrapper.cookie)).await?;
+
+    let page = browser.new_page(format!("{our_url}/edit/info")).await?;
+
+    // wait to load
+    let _ = page.wait_for_navigation().await?;
+
+    wrapper.log("Page successfully loaded, typing into input...").await;
+
+    // clear old name
+    page
+        .evaluate("() => {document.querySelector('input[name=personaName]').clear()}")
+        .await?;
+
+    page.find_element("input[name=personaName]")
+        .await?
+        .click()
+        .await?
+        .type_str(name)
+        .await?;
+
+    wrapper.log("Successfully typed into input, submitting...").await;
+
+    page.find_element("button[type=submit]")
+        .await?
+        .click()
+        .await?;
+
+    let _ = page.wait_for_navigation().await?.content().await?;
+
+    wrapper.log("Page finished navigation, closing browser.");
+
+    browser.close().await?;
+    let _ = handle.await;
+    Ok(())
 }
 
-async fn steal(Json(StealBody { cookie, mut profile_url }): Json<StealBody>) -> Response {
-    if !profile_url.starts_with("https://steamcommunity.com/id/") {
-        profile_url = format!("https://steamcommunity.com/id/{profile_url}");
-    }
-
-    let their_profile = match profile::parse_profile(&profile_url).await {
-        Ok(o) => o,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    };
-
-    // ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-    let our_profile = match profile::get_self_profile(&cookie).await {
-        Ok(o) => o,
-        Err(e) => return (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
-    };
+async fn update_picture<S: ToString>(_cookie: S, _our_profile: &Profile, _target: &Profile) -> Result<()> {
+    todo!()
 }
-
-// Content-Disposition: form-data; name="sessionID"
-//
-// 55a967cfd6f486d7ac559484
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="type"
-//
-// profileSave
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="weblink_1_title"
-//
-//
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="weblink_1_url"
-//
-//
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="weblink_2_title"
-//
-//
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="weblink_2_url"
-//
-//
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="weblink_3_title"
-//
-//
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="weblink_3_url"
-//
-//
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="personaName"
-//
-// your friendS
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="real_name"
-//
-//
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="customURL"
-//
-// coops_
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="country"
-//
-//
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="state"
-//
-//
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="city"
-//
-//
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="summary"
-//
-// No information given.
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="hide_profile_awards"
-//
-// 1
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="type"
-//
-// profileSave
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="sessionID"
-//
-// 55a967cfd6f486d7ac559484
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e
-// Content-Disposition: form-data; name="json"
-//
-// 1
-// ------WebKitFormBoundaryr5ejRMTYsE4sE75e--
-
-async fn update_name<S: ToString>(cookie: S, our_profile: &Profile, target: &Profile) -> Result<()> {
-    let boundary = "------WebKitFormBoundaryr5ejRMTYsE4sE75e";
-
-    let req = Client::default()
-        .post()
-        .header(COOKIE, format!("steamLoginSecure={cookie}"))
-        .header(USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
-        .header(CONTENT_TYPE, format!("multipart/form-data; boundary={boundary}"))
-
-    // i'm sorry reqwest doesn't support custom boundaries
-    let fields = [
-        ("sessionID", ""), // session id,
-        ("type", "profileSave"),
-        ("weblink_1_title", ""),
-        ("weblink_1_url", ""),
-        ("weblink_2_title", ""),
-        ("weblink_2_url", ""),
-        ("weblink_3_title", ""),
-        ("weblink_3_url", ""),
-        ("personaName", &target.name),
-        ("real_name", ""), // real name
-        ("customURL", ""), // custom url
-        ("country", ""), // country
-        ("state", ""), // state
-        ("city", ""), // city
-        ("summary", ""), // summary
-        ("hide_profile_awards", ""), // hide profile awards (1/0)
-        ("type", "profileSave"), // AGAIN
-        ("sessionID", ""), // session id AGAIN
-        ("json", "1")
-    ];
-
-    // fields
-    //     .map(|(name, value)| format!())
-}
-
-async fn update_picture<S: ToString>(cookie: S, our_profile: &Profile, target: &Profile) -> Result<()> {}

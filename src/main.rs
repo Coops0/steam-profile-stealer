@@ -1,17 +1,18 @@
 mod stealer;
 mod profile;
+mod websocket;
 
 use anyhow::Result;
-use axum::extract::{Query, RawQuery};
-use axum::response::{Html, IntoResponse, Redirect, Response};
-use axum::{Json, Router, Server};
-use axum::http::StatusCode;
-use axum::routing::{get, post};
-use once_cell::sync::Lazy;
-use paris::{error, info, success};
-use reqwest::Client;
-use reqwest::redirect::Policy;
-use scraper::{ElementRef, Selector};
+
+use axum::response::{Html};
+use axum::{Router, Server};
+
+use axum::routing::{get};
+
+use paris::{info, success};
+
+
+
 use serde::{Deserialize, Serialize};
 
 
@@ -19,8 +20,7 @@ use serde::{Deserialize, Serialize};
 async fn main() -> Result<()> {
     let app = Router::new()
         .route("/", get(root))
-        .route("/mine", post(profile::mine))
-        .route("/profile", get(profile::profile));
+        .route("/ws", get(websocket::websocket_handler));
 
     info!("Attempting to bind server...");
     let builder = Server::bind(&"0.0.0.0:8000".parse()?);
@@ -36,7 +36,7 @@ async fn root() -> Html<&'static str> {
 }
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Profile {
     pub name: String,
     pub icon_url: String,

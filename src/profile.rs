@@ -1,25 +1,16 @@
-use std::future::Future;
 use anyhow::{bail, Context};
 use reqwest::Client;
 use scraper::Selector;
-use axum::Json;
-use axum::response::{IntoResponse, Response};
+
+
 use reqwest::redirect::Policy;
-use paris::error;
-use axum::http::StatusCode;
-use serde::Deserialize;
-use axum::extract::Query;
+
+
 use crate::Profile;
 use anyhow::Result;
+use crate::websocket::WebsocketWrapper;
 
-#[derive(Deserialize)]
-pub struct TestBody {
-    cookie: String,
-}
-
-pub async fn get_self_profile<S: ToString>(cookie: S) -> Result<Profile> {
-    let cookie = cookie.to_string();
-
+pub async fn get_self_profile(wrapper: &mut WebsocketWrapper) -> Result<Profile> {
     let client = Client::builder()
         .redirect(Policy::none())
         .build()
@@ -27,61 +18,41 @@ pub async fn get_self_profile<S: ToString>(cookie: S) -> Result<Profile> {
 
     // let cookie = "76561198286609782%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MTFEMF8yMjMxODEzRl9DRkNDRCIsICJzdWIiOiAiNzY1NjExOTgyODY2MDk3ODIiLCAiYXVkIjogWyAid2ViIiBdLCAiZXhwIjogMTY4NDAzNDk2NywgIm5iZiI6IDE2NzUzMDc2NTcsICJpYXQiOiAxNjgzOTQ3NjU3LCAianRpIjogIjE0M0JfMjI4NUNBOUJfRUJGNjgiLCAib2F0IjogMTY3ODMwMTkwMywgInJ0X2V4cCI6IDE2OTYzOTQwOTksICJwZXIiOiAwLCAiaXBfc3ViamVjdCI6ICI3MS4xOTEuODQuMjgiLCAiaXBfY29uZmlybWVyIjogIjcxLjE5MS44NC4yOCIgfQ.71ndyfohgopVd81ccE2I6snOSnz1uCokQYYe6e6FMT94YWeELAY5eszlgpMWIvp0QI4ANDFF6VzKIJo22-kiAg";
 
+    wrapper.log("Sending initial request to get redirect...").await;
+
     let res = client.get("https://steamcommunity.com/my/profile")
-        .header("cookie", format!("steamLoginSecure={cookie}"))
+        .header("cookie", format!("steamLoginSecure={}", wrapper.cookie))
         .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
         .send()
         .await
         .context("failed to req (server error)")?;
 
+    wrapper.log("Received response, Parsing location header...").await;
+
     let location = res.headers()
         .get("Location")
-        .map(|l| l.to_str().ok())
-        .flatten()
+        .and_then(|l| l.to_str().ok())
         .unwrap_or_default();
 
     if location.is_empty() || location == "https://steamcommunity.com/login/home/?goto=%2Fmy%2Fprofile" {
         bail!("redirect is invalid (bad cookie)");
     }
 
-    parse_profile(location)
+    wrapper.log(format!("Found location as {location}, forwarding to parse profile function...")).await;
+
+    parse_profile(wrapper, location)
         .await
         .context("couldn't parse profile (server error)")
 }
 
-pub async fn mine(Json(TestBody { cookie }): Json<TestBody>) -> Response {
-    match get_self_profile(cookie).await {
-        Ok(o) => Json(o).into_response(),
-        Err(e) => {
-            error!("failed to fetch profile -> {e:?}");
-            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
-        }
-    }
-}
-
-#[derive(Deserialize)]
-pub struct ProfileParam {
-    profile_url: String,
-}
-
-pub async fn profile(Query(ProfileParam { mut profile_url }): Query<ProfileParam>) -> Response {
-    if !profile_url.starts_with("https://steamcommunity.com/id/") {
-        profile_url = format!("https://steamcommunity.com/id/{profile_url}");
-    }
-
-    match parse_profile(&profile_url).await {
-        Ok(o) => Json(o).into_response(),
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
-        }
-    }
-}
-
-pub async fn parse_profile(url: &str) -> anyhow::Result<Profile> {
+pub async fn parse_profile(wrapper: &mut WebsocketWrapper, url: &str) -> anyhow::Result<Profile> {
+    wrapper.log(format!("Sending request to your profile {url}...")).await;
     let resp = Client::default().get(url)
         .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
         .send()
         .await?;
+
+    wrapper.log("Got profile response, parsing HTML...").await;
 
     let text = resp.text().await?;
     let document = scraper::Html::parse_document(&text);
