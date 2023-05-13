@@ -1,0 +1,13 @@
+[package]
+name = "steam-profiler-stealer"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1.12.0", features = ["full"] }
+axum = "0.6.18"
+steam-auth = "1.0.0"
+anyhow = "1.0.71"
+paris = { version = "1.5.15", features = ["no_logger", "macros"] }
