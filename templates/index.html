@@ -42,8 +42,8 @@
             console.error(e);
         })
 
-        ws.addEventListener('message', m => {
-            const j = JSON.parse(m.data);
+        ws.addEventListener('message', ({data}) => {
+            const j = JSON.parse(data);
             console.log(j);
 
             console.log(Object.keys(j));
