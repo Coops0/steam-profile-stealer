@@ -3,18 +3,14 @@ mod profile;
 mod websocket;
 
 use anyhow::Result;
-
-use axum::response::{Html};
-use axum::{Router, Server};
-
-use axum::routing::{get};
-
+use axum::{
+    response::Html,
+    Router,
+    Server,
+    routing::get
+};
 use paris::{info, success};
-
-
-
 use serde::{Deserialize, Serialize};
-
 
 #[tokio::main]
 async fn main() -> Result<()> {

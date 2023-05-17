@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use anyhow::{
     bail,
     Context,
@@ -68,18 +69,19 @@ pub async fn parse_profile(wrapper: &mut WebsocketWrapper, url: &str) -> Result<
         .collect::<Vec<&str>>()
         .first()
         .context("no first element")?
-        .to_string();
+        .deref()
+        .to_owned();
 
     let icon_url = document.select(&Selector::parse(".playerAvatarAutoSizeInner > img").unwrap())
         .filter_map(|e| e.value().attr("src"))
-        .map(|e| e.to_string())
+        .map(str::to_owned)
         .collect::<String>();
 
     Ok(
         Profile {
             name,
             icon_url,
-            url: url.to_string(),
+            url: url.to_owned(),
         }
     )
 }

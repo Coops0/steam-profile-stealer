@@ -34,7 +34,6 @@ pub async fn headless_steam(wrapper: &mut WebsocketWrapper, name: &str, base64_i
         }
     });
 
-
     wrapper.log("Launched headless chrome instance, setting up cookie...").await;
 
     let page = browser.new_page("about:blank").await?;

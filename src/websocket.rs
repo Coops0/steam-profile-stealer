@@ -47,7 +47,7 @@ pub struct WebsocketWrapper {
 }
 
 impl WebsocketWrapper {
-    pub fn new(ws: Option<WebSocket>) -> Self {
+    pub const fn new(ws: Option<WebSocket>) -> Self {
         Self {
             ws,
             cookie: String::new(),
@@ -108,7 +108,7 @@ async fn websocket(ws: WebSocket) {
         }
 
         if let SteamMessageIn::Cookie { cookie } = &msg {
-            wrapper.cookie = cookie.to_owned();
+            wrapper.cookie = cookie.clone();
         }
 
         match msg {
@@ -160,6 +160,7 @@ async fn websocket(ws: WebSocket) {
                 }
 
                 wrapper.sm(SteamMessageOut::PictureChange { url: image_url }).await;
+                wrapper.log("Success!").await;
             }
         }
     }
