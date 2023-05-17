@@ -1,14 +1,14 @@
-use anyhow::{bail, Context};
-use reqwest::Client;
+use anyhow::{
+    bail,
+    Context,
+    Result,
+};
+use reqwest::{Client, header, redirect::Policy};
 use scraper::Selector;
-
-
-use reqwest::redirect::Policy;
-
-
-use crate::Profile;
-use anyhow::Result;
-use crate::websocket::{Messager, WebsocketWrapper};
+use crate::{
+    Profile,
+    websocket::WebsocketWrapper,
+};
 
 pub async fn get_self_profile(wrapper: &mut WebsocketWrapper) -> Result<Profile> {
     let client = Client::builder()
@@ -21,15 +21,15 @@ pub async fn get_self_profile(wrapper: &mut WebsocketWrapper) -> Result<Profile>
     wrapper.log("Sending initial request to get redirect...").await;
 
     let res = client.get("https://steamcommunity.com/my/profile")
-        .header("cookie", format!("steamLoginSecure={}", wrapper.cookie))
-        .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
+        .header(header::COOKIE, format!("steamLoginSecure={}", wrapper.cookie))
+        .header(header::USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
         .send()
         .await
         .context("failed to req (server error)")?;
 
     wrapper.log("Received response, Parsing location header...").await;
 
-    let location = res.headers()
+    let mut location = res.headers()
         .get("Location")
         .and_then(|l| l.to_str().ok())
         .unwrap_or_default();
@@ -40,6 +40,8 @@ pub async fn get_self_profile(wrapper: &mut WebsocketWrapper) -> Result<Profile>
 
     wrapper.log(format!("Found location as {location}, forwarding to parse profile function...")).await;
 
+    location = location.strip_suffix("/profile").unwrap_or(location);
+
     parse_profile(wrapper, location)
         .await
         .context("couldn't parse profile (server error)")
@@ -48,7 +50,7 @@ pub async fn get_self_profile(wrapper: &mut WebsocketWrapper) -> Result<Profile>
 pub async fn parse_profile(wrapper: &mut WebsocketWrapper, url: &str) -> anyhow::Result<Profile> {
     wrapper.log(format!("Sending request to your profile {url}...")).await;
     let resp = Client::default().get(url)
-        .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
+        .header(header::USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
         .send()
         .await?;
 

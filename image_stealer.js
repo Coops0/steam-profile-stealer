@@ -1,8 +1,6 @@
 () => {
-    const dataurl = `{image_base64}`;
-    const arr = dataurl.split(',');
     const mime = 'image/jpg';
-    const bstr = atob(arr[1]);
+    const bstr = atob(`{image_base64}`);
     let n = bstr.length;
     let u8arr = new Uint8Array(n);
 

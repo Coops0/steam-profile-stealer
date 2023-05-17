@@ -1,12 +1,17 @@
-use axum::async_trait;
-use axum::extract::WebSocketUpgrade;
-use axum::extract::ws::{Message, WebSocket};
-use axum::response::Response;
+use axum::{
+    extract::{
+        WebSocketUpgrade,
+        ws::{Message, WebSocket},
+    },
+    response::Response,
+};
 use paris::error;
 use serde::{Deserialize, Serialize};
-use crate::Profile;
-use crate::profile::{get_self_profile, parse_profile};
-use crate::stealer::{headless_steam, image_to_base64};
+use crate::{
+    Profile,
+    profile::{get_self_profile, parse_profile},
+    stealer::{headless_steam, image_to_base64},
+};
 
 
 pub async fn websocket_handler(
@@ -30,17 +35,34 @@ pub enum SteamMessageOut {
 pub enum SteamMessageIn {
     Cookie { cookie: String },
     RefreshProfile,
-    StealProfile { name: String, our_url: String, image_url: String },
+    StealProfile { name: String, image_url: String },
     FetchProfile { url: String },
 }
 
 pub struct WebsocketWrapper {
-    ws: WebSocket,
+    // Only None for testing
+    ws: Option<WebSocket>,
     pub cookie: String,
+    pub profile_url: String,
 }
 
-impl Messager for WebsocketWrapper {
-    async fn sm(&mut self, message: SteamMessageOut) {
+impl WebsocketWrapper {
+    pub fn new(ws: Option<WebSocket>) -> Self {
+        Self {
+            ws,
+            cookie: String::new(),
+            profile_url: String::new(),
+        }
+    }
+
+    async fn send(&mut self, text: String) {
+        match &mut self.ws {
+            Some(o) => { let _ = o.send(Message::Text(text)).await; }
+            None => println!("{text}")
+        }
+    }
+
+    pub async fn sm(&mut self, message: SteamMessageOut) {
         let string = match serde_json::to_string(&message) {
             Ok(o) => o,
             Err(e) => {
@@ -49,36 +71,26 @@ impl Messager for WebsocketWrapper {
             }
         };
 
-        let _ = self.ws.send(Message::Text(string)).await;
+        self.send(string).await;
     }
-    async fn log<S: ToString>(&mut self, message: S) {
+
+    pub async fn log<S: ToString>(&mut self, message: S) {
         let message = message.to_string();
 
         self.sm(SteamMessageOut::StatusUpdate { message }).await;
     }
-    async fn error<E: ToString>(&mut self, error: E) {
+
+    pub async fn error<E: ToString>(&mut self, error: E) {
         let error = error.to_string();
 
         self.sm(SteamMessageOut::Error { message: error }).await;
     }
 }
 
-pub trait Messager {
-    fn cookie() -> String;
-
-    async fn sm(&mut self, message: SteamMessageOut);
-    async fn log<S: ToString>(&mut self, message: S);
-    async fn error<E: ToString>(&mut self, error: E);
-}
-
-
 async fn websocket(ws: WebSocket) {
-    let mut wrapper = WebsocketWrapper {
-        ws,
-        cookie: String::new(),
-    };
+    let mut wrapper = WebsocketWrapper::new(Some(ws));
 
-    while let Some(msg) = wrapper.ws.recv().await {
+    while let Some(msg) = wrapper.ws.as_mut().unwrap().recv().await {
         let text = match msg {
             Ok(Message::Text(t)) => t,
             Ok(Message::Close(_)) => return,
@@ -102,14 +114,17 @@ async fn websocket(ws: WebSocket) {
         match msg {
             SteamMessageIn::Cookie { .. } | SteamMessageIn::RefreshProfile => {
                 match get_self_profile(&mut wrapper).await {
-                    Ok(profile) => wrapper.sm(SteamMessageOut::SelfProfile { profile }).await,
+                    Ok(profile) => {
+                        wrapper.profile_url = profile.url.clone();
+                        wrapper.sm(SteamMessageOut::SelfProfile { profile }).await;
+                    }
                     Err(e) => {
                         wrapper.cookie = String::new();
+                        wrapper.profile_url = String::new();
                         wrapper.error(e).await;
                     }
                 }
             }
-
             SteamMessageIn::FetchProfile { mut url } => {
                 if !url.starts_with("https://steamcommunity.com/id/") {
                     url = format!("https://steamcommunity.com/id/{url}");
@@ -120,12 +135,16 @@ async fn websocket(ws: WebSocket) {
                     Err(e) => wrapper.error(e).await,
                 }
             }
-            SteamMessageIn::StealProfile { image_url, name, our_url } => {
-                if !image_url.starts_with("https://avatars.cloudflare.steamstatic.com/") {
+            SteamMessageIn::StealProfile { image_url, name } => {
+                if !image_url.starts_with("https://avatars.cloudflare.steamstatic.com/") && !image_url.starts_with("https://avatars.akamai.steamstatic.com/") {
                     wrapper.error("bad image url").await;
                     continue;
                 }
 
+                if wrapper.profile_url.is_empty() {
+                    wrapper.error("no profile url set yet").await;
+                    continue;
+                }
 
                 let base64_image = match image_to_base64(&mut wrapper, &image_url).await {
                     Ok(o) => o,
@@ -135,7 +154,7 @@ async fn websocket(ws: WebSocket) {
                     }
                 };
 
-                if let Err(e) = headless_steam(&mut wrapper, &our_url, &name, &base64_image).await {
+                if let Err(e) = headless_steam(&mut wrapper, &name, &base64_image).await {
                     wrapper.error(e).await;
                     continue;
                 }

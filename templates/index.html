@@ -8,17 +8,54 @@
     <title>Steam Profiler Stealer</title>
 </head>
 <body>
-<input type="text" placeholder="your cookie" class="cookie" value="76561198286609782%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MTFEMF8yMjMxODEzRl9DRkNDRCIsICJzdWIiOiAiNzY1NjExOTgyODY2MDk3ODIiLCAiYXVkIjogWyAid2ViIiBdLCAiZXhwIjogMTY4NDAzNDk2NywgIm5iZiI6IDE2NzUzMDc2NTcsICJpYXQiOiAxNjgzOTQ3NjU3LCAianRpIjogIjE0M0JfMjI4NUNBOUJfRUJGNjgiLCAib2F0IjogMTY3ODMwMTkwMywgInJ0X2V4cCI6IDE2OTYzOTQwOTksICJwZXIiOiAwLCAiaXBfc3ViamVjdCI6ICI3MS4xOTEuODQuMjgiLCAiaXBfY29uZmlybWVyIjogIjcxLjE5MS44NC4yOCIgfQ.71ndyfohgopVd81ccE2I6snOSnz1uCokQYYe6e6FMT94YWeELAY5eszlgpMWIvp0QI4ANDFF6VzKIJo22-kiAg">
+<input type="text" placeholder="your cookie" class="cookie">
+<button class="save-cookie">save cookie</button>
 
 <script>
-    const cookie = document.querySelector('.cookie');
-    async function test() {
-        try {
-            const
-        } catch (e) {
+    let cookie = localStorage.getItem('steamCookie');
+    let ws = null;
 
+    if (cookie) {
+        newWebsocket();
+    }
+
+    function send(msg) {
+        if (ws) {
+            ws.send(JSON.stringify(msg));
         }
     }
+
+    function newWebsocket() {
+        ws = new WebSocket('ws://localhost:8000/ws');
+
+        ws.addEventListener('open', () => {
+            console.log('websocket opened!');
+            send({Cookie: {cookie}})
+        });
+
+        ws.addEventListener('close', c => {
+            console.log('websocket closed', c);
+            newWebsocket();
+        });
+
+        ws.addEventListener('error', e => {
+            console.error(e);
+        })
+
+        ws.addEventListener('message', m => {
+            const j = JSON.parse(m.data);
+            console.log(j);
+
+            console.log(Object.keys(j));
+        });
+    }
+
+
+    document.querySelector('.save-cookie').addEventListener('click', () => {
+        cookie = document.querySelector('.cookie').value;
+        localStorage.setItem('steamCookie', cookie);
+        newWebsocket();
+    });
 </script>
 </body>
 </html>
