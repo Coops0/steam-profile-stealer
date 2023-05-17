@@ -1,4 +1,4 @@
-use std::error::Error;
+use axum::async_trait;
 use axum::extract::WebSocketUpgrade;
 use axum::extract::ws::{Message, WebSocket};
 use axum::response::Response;
@@ -6,7 +6,8 @@ use paris::error;
 use serde::{Deserialize, Serialize};
 use crate::Profile;
 use crate::profile::{get_self_profile, parse_profile};
-use crate::stealer::headless_name_steal;
+use crate::stealer::{headless_steam, image_to_base64};
+
 
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
@@ -29,7 +30,7 @@ pub enum SteamMessageOut {
 pub enum SteamMessageIn {
     Cookie { cookie: String },
     RefreshProfile,
-    StealProfile { name: String, our_url: String, ¬ image_url: String },
+    StealProfile { name: String, our_url: String, image_url: String },
     FetchProfile { url: String },
 }
 
@@ -38,8 +39,8 @@ pub struct WebsocketWrapper {
     pub cookie: String,
 }
 
-impl WebsocketWrapper {
-    pub async fn sm(&mut self, message: SteamMessageOut) {
+impl Messager for WebsocketWrapper {
+    async fn sm(&mut self, message: SteamMessageOut) {
         let string = match serde_json::to_string(&message) {
             Ok(o) => o,
             Err(e) => {
@@ -50,18 +51,24 @@ impl WebsocketWrapper {
 
         let _ = self.ws.send(Message::Text(string)).await;
     }
-
-    pub async fn log<S: ToString>(&mut self, message: S) {
+    async fn log<S: ToString>(&mut self, message: S) {
         let message = message.to_string();
 
         self.sm(SteamMessageOut::StatusUpdate { message }).await;
     }
-
-    pub async fn error<E: ToString>(&mut self, error: E) {
+    async fn error<E: ToString>(&mut self, error: E) {
         let error = error.to_string();
 
         self.sm(SteamMessageOut::Error { message: error }).await;
     }
+}
+
+pub trait Messager {
+    fn cookie() -> String;
+
+    async fn sm(&mut self, message: SteamMessageOut);
+    async fn log<S: ToString>(&mut self, message: S);
+    async fn error<E: ToString>(&mut self, error: E);
 }
 
 
@@ -114,17 +121,24 @@ async fn websocket(ws: WebSocket) {
                 }
             }
             SteamMessageIn::StealProfile { image_url, name, our_url } => {
-                match headless_name_steal(&mut wrapper, &our_url, &name).await {
-                    Ok(_) => {}
+                if !image_url.starts_with("https://avatars.cloudflare.steamstatic.com/") {
+                    wrapper.error("bad image url").await;
+                    continue;
+                }
+
+
+                let base64_image = match image_to_base64(&mut wrapper, &image_url).await {
+                    Ok(o) => o,
                     Err(e) => {
                         wrapper.error(e).await;
                         continue;
                     }
+                };
+
+                if let Err(e) = headless_steam(&mut wrapper, &our_url, &name, &base64_image).await {
+                    wrapper.error(e).await;
+                    continue;
                 }
-
-                wrapper.sm(SteamMessageOut::NameChange { name }).await;
-
-                // TODO set image url
 
                 wrapper.sm(SteamMessageOut::PictureChange { url: image_url }).await;
             }

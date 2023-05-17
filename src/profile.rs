@@ -8,7 +8,7 @@ use reqwest::redirect::Policy;
 
 use crate::Profile;
 use anyhow::Result;
-use crate::websocket::WebsocketWrapper;
+use crate::websocket::{Messager, WebsocketWrapper};
 
 pub async fn get_self_profile(wrapper: &mut WebsocketWrapper) -> Result<Profile> {
     let client = Client::builder()

@@ -1,12 +1,21 @@
-use crate::{Profile};
 use anyhow::Result;
+use base64::Engine;
+use base64::engine::general_purpose;
 use chromiumoxide::{Browser, BrowserConfig};
-use crate::websocket::WebsocketWrapper;
+use crate::websocket::{Messager, SteamMessageOut, WebsocketWrapper};
 use chromiumoxide::cdp::browser_protocol::network::CookieParam;
 use futures::StreamExt;
+use reqwest::get;
 
+pub async fn image_to_base64(wrapper: &mut WebsocketWrapper, image_url: &str) -> Result<String> {
+    wrapper.log("Requesting image from url").await;
+    let image = get(image_url).await?.bytes().await?;
 
-pub async fn headless_name_steal(wrapper: &mut WebsocketWrapper, our_url: &str, name: &str) -> Result<()> {
+    wrapper.log("Requested image, encoding base64...").await;
+    Ok(general_purpose::STANDARD.encode(image))
+}
+
+pub async fn headless_steam(wrapper: &mut WebsocketWrapper, our_url: &str, name: &str, base64_image: &str) -> Result<()> {
     wrapper.log("Launching new headless chrome instance...").await;
     let (mut browser, mut handler) =
         Browser::launch(BrowserConfig::builder().with_head().build().unwrap()).await?;
@@ -53,13 +62,37 @@ pub async fn headless_name_steal(wrapper: &mut WebsocketWrapper, our_url: &str, 
 
     let _ = page.wait_for_navigation().await?.content().await?;
 
-    wrapper.log("Page finished navigation, closing browser.");
+    wrapper.log("Finished changing name, navigating to edit avatar.").await;
+    wrapper.sm(SteamMessageOut::NameChange { name: name.to_owned() }).await;
+
+    let page = browser.new_page(format!("{our_url}/edit/avatar")).await?;
+
+    wrapper.log("Navigating to avatar page, running script to update image.").await;
+
+    page
+        .evaluate(include_str!("../image_stealer.js").replace("{image_base64}", base64_image))
+        .await?;
+
+    wrapper.log("Finished updating image.").await;
+
+    let _ = page.wait_for_navigation().await?.content().await?;
+
+    wrapper.log("Page finished navigation, closing browser.").await;
 
     browser.close().await?;
     let _ = handle.await;
     Ok(())
 }
 
-async fn update_picture<S: ToString>(_cookie: S, _our_profile: &Profile, _target: &Profile) -> Result<()> {
-    todo!()
+#[cfg(test)]
+#[async_trait]
+mod tests {
+    use axum::async_trait;
+    use anyhow::Result;
+
+    #[test]
+    async fn test_image_shit() -> Result<()> {
+        let result = 2 + 2;
+        assert_eq!(result, 4);
+    }
 }

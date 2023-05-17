@@ -16,5 +16,6 @@ serde = { version = "1.0.163", features = ["derive"]}
 scraper = "0.16.0"
 serde_json = "1.0.96"
 chromiumoxide = { git = "https://github.com/mattsse/chromiumoxide", features = ["tokio-runtime"], default-features = false, branch = "main"}
+base64 = "0.21.0"
 
 futures = "0.3.28"
