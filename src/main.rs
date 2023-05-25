@@ -1,22 +1,28 @@
 mod stealer;
 mod profile;
 mod websocket;
+mod message;
 
 use anyhow::Result;
 use axum::{
     response::Html,
     Router,
     Server,
-    routing::get
+    routing::get,
 };
+use axum::extract::WebSocketUpgrade;
 use paris::{info, success};
 use serde::{Deserialize, Serialize};
+use crate::websocket::websocket;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let app = Router::new()
         .route("/", get(root))
-        .route("/ws", get(websocket::websocket_handler));
+        .route("/ws",
+               get(|ws: WebSocketUpgrade| async { ws.on_upgrade(websocket) }
+               ),
+        );
 
     info!("Attempting to bind server...");
     let builder = Server::bind(&"0.0.0.0:8000".parse()?);

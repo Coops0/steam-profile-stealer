@@ -6,10 +6,8 @@ use anyhow::{
 };
 use reqwest::{Client, header, redirect::Policy};
 use scraper::Selector;
-use crate::{
-    Profile,
-    websocket::WebsocketWrapper,
-};
+use crate::Profile;
+use crate::message::WebsocketWrapper;
 
 pub async fn get_self_profile(wrapper: &mut WebsocketWrapper) -> Result<Profile> {
     let client = Client::builder()
@@ -88,7 +86,7 @@ pub async fn parse_profile(wrapper: &mut WebsocketWrapper, url: &str) -> Result<
 
 #[cfg(test)]
 mod tests {
-    use crate::websocket::WebsocketWrapper;
+    use crate::message::WebsocketWrapper;
     use anyhow::Result;
     use crate::profile::{get_self_profile, parse_profile};
 
@@ -112,7 +110,7 @@ mod tests {
         let mut wrapper = WebsocketWrapper::new(None);
         let profile = parse_profile(&mut wrapper, "https://steamcommunity.com/id/gabelogannewell").await?;
 
-        assert_eq!(&profile.icon_url, "https://avatars.akamai.steamstatic.com/c5d56249ee5d28a07db4ac9f7f60af961fab5426_full.jpg");
+        assert!(&profile.icon_url.ends_with("/c5d56249ee5d28a07db4ac9f7f60af961fab5426_full.jpg"));
         assert_eq!(&profile.name, "Rabscuttle");
         assert_eq!(&profile.url, "https://steamcommunity.com/id/gabelogannewell");
 

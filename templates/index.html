@@ -46,7 +46,9 @@
             const j = JSON.parse(data);
             console.log(j);
 
-            console.log(Object.keys(j));
+            const name = Object.keys(j)[0];
+
+            console.log(name, j[name]);
         });
     }
 
