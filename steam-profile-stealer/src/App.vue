@@ -7,12 +7,12 @@ const cookieStore = useCookieStore();
 const ws = new WebSocket('ws://localhost:8000/ws');
 
 type SteamMessageIn =
-    | { "StatusUpdate": { message: string } }
-    | { "SelfProfile": { profile: Profile } }
-    | { "ProfileFetch": { profile: Profile } }
-    | { "Error": { message: string } }
-    | { "NameChange": { name: string } }
-    | { "PictureChange": { url: string } };
+    | { tag: "status_update", fields: { message: string } }
+    | { tag: "self_profile", fields: { profile: Profile } }
+    | { tag: "profile_fetch", fields: { profile: Profile } }
+    | { tag: "error", fields: { message: string } }
+    | { tag: "name_change", fields: { name: string } }
+    | { tag: "picture_change", fields: { url: string } };
 
 type SteamMessageOut =
     | { "Cookie": { cookie: string } }
@@ -45,20 +45,19 @@ ws.addEventListener('message', ({data}) => {
   const j = JSON.parse(data) as SteamMessageIn;
   console.log(j);
 
-  const name = Object.keys(j)[0];
-  switch (name) {
-    case 'StatusUpdate':
-      j['StatusUpdate'].message
+  switch (j.tag) {
+    case 'status_update':
+      j.fields.message
       break;
-    case 'SelfProfile':
+    case 'self_profile':
       break;
-    case 'ProfileFetch':
+    case 'profile_fetch':
       break;
-    case 'Error':
+    case 'error':
       break;
-    case 'NameChange':
+    case 'name_change':
       break;
-    case 'PictureChange':
+    case 'picture_change':
       break;
   }
 });

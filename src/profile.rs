@@ -78,7 +78,7 @@ pub async fn parse_profile(wrapper: &mut WebsocketWrapper, url: &str) -> Result<
     Ok(
         Profile {
             name,
-            icon_url,
+            image_url: icon_url,
             url: url.to_owned(),
         }
     )
@@ -98,7 +98,7 @@ mod tests {
         wrapper.cookie = AUTH_COOKIE.to_owned();
 
         let profile = get_self_profile(&mut wrapper).await?;
-        assert_eq!(&profile.icon_url, "https://avatars.akamai.steamstatic.com/244734af0daa603a8ae9f33f5dcb3a7c14c4d126_full.jpg");
+        assert_eq!(&profile.image_url, "https://avatars.akamai.steamstatic.com/244734af0daa603a8ae9f33f5dcb3a7c14c4d126_full.jpg");
         assert_eq!(&profile.name, "your friend");
         assert_eq!(&profile.url, "https://steamcommunity.com/id/coops_");
 
@@ -110,7 +110,7 @@ mod tests {
         let mut wrapper = WebsocketWrapper::new(None);
         let profile = parse_profile(&mut wrapper, "https://steamcommunity.com/id/gabelogannewell").await?;
 
-        assert!(&profile.icon_url.ends_with("/c5d56249ee5d28a07db4ac9f7f60af961fab5426_full.jpg"));
+        assert!(&profile.image_url.ends_with("/c5d56249ee5d28a07db4ac9f7f60af961fab5426_full.jpg"));
         assert_eq!(&profile.name, "Rabscuttle");
         assert_eq!(&profile.url, "https://steamcommunity.com/id/gabelogannewell");
 

@@ -38,9 +38,9 @@ async fn root() -> Html<&'static str> {
 }
 
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Profile {
     pub name: String,
-    pub icon_url: String,
+    pub image_url: String,
     pub url: String,
 }
