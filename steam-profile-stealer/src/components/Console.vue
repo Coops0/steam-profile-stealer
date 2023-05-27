@@ -1,20 +1,17 @@
 <script setup lang="ts">
-const props = defineProps<{ messages: { message: string; key: string; }[] }>();
+defineProps<{ messages: { message: string; key: string; error: boolean; }[] }>();
 </script>
 
 <template>
-  <v-container>
-    <p v-for="message in messages" :key="message.key">
-      {{ message.message }}
-    </p>
-  </v-container>
+  <p v-for="message in messages" :key="message.key" :class="{'text-red': message.error}">
+    {{ message.message }}
+  </p>
 </template>
 
 <style scoped>
-v-container {
-  background: black;
-  color: white;
-  overflow: scroll;
-  height: 500px;
+/*noinspection CssOverwrittenProperties*/
+p {
+  font-family: 'Roboto', sans-serif;
+  font-family: 'Roboto Mono', monospace;
 }
 </style>

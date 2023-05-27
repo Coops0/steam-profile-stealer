@@ -4,70 +4,36 @@ import CookieInput from "@/components/CookieInput.vue";
 import type { Profile } from "@/stores/profile";
 import { useProfileStore } from "@/stores/profile";
 import Console from "@/components/Console.vue";
-import ProfileComponent from "@/components/profiles/ProfileComponent.vue";
 import { ref } from "vue";
+import BothProfiles from "@/components/profiles/BothProfiles.vue";
+import { useLoadingStore } from "@/stores/loading";
 
 const cookieStore = useCookieStore();
 const messages = ref([]);
-const ws = new WebSocket('ws://localhost:8000/ws');
 const profileStore = useProfileStore();
-
-export type SteamMessageIn =
-    | { tag: "status_update", fields: { message: string } }
-    | { tag: "self_profile", fields: { profile: Profile } }
-    | { tag: "profile_fetch", fields: { profile: Profile } }
-    | { tag: "error", fields: { message: string } }
-    | { tag: "name_change", fields: { name: string } }
-    | { tag: "picture_change", fields: { url: string } };
-
-export type SteamMessageOut =
-    | { tag: "cookie", fields: { cookie: string } }
-    | { tag: "refresh_profile" }
-    | { tag: "steal_profile", fields: { name: string, image_url: string } }
-    | { tag: "fetch_profile", fields: { url: string } }
-
-function send(object: SteamMessageOut) {
-  if (ws.readyState === ws.OPEN) {
-    ws.send(JSON.stringify(object));
-  }
-}
-
-ws.addEventListener('open', () => {
-  console.log('websocket opened!');
-  if (cookieStore.cookie) {
-    send({tag: "cookie", fields: {cookie: cookieStore.cookie}});
-  }
-});
-
-ws.addEventListener('close', c => {
-  console.log('websocket closed', c);
-});
-
-ws.addEventListener('error', e => {
-  console.error(e);
-})
-
+const loadingStore = useLoadingStore();
 
 ws.addEventListener('message', ({data}) => {
   const j = JSON.parse(data) as SteamMessageIn;
   console.log(j);
 
   if (j.tag === 'error' || j.tag === 'self_profile' || j.tag === 'profile_fetch' || j.tag === 'picture_change') {
-    loading.value = false;
+    loadingStore.loading = false;
+  }
+
+  if (j.tag === 'error' && !profileStore.selfProfile) {
+    alert(j.fields.message);
+    return;
   }
 
   switch (j.tag) {
     case 'status_update':
     case 'error':
-      const message = j.fields.message;
-      messages.value.push({message, key: Math.random().toString()});
-      if(messages.value.length > 10) {
-        messages.value.shift();
-      }
-
+      log(j.fields.message, j.tag === 'error');
       break;
     case 'self_profile':
       profileStore.selfProfile = j.fields.profile;
+      retries = 0;
       break;
     case 'profile_fetch':
       profileStore.targetProfile = j.fields.profile;
@@ -86,11 +52,16 @@ ws.addEventListener('message', ({data}) => {
       break;
   }
 });
-let loading = ref(false);
+
+function saveCookie() {
+  send({tag: 'cookie', fields: {cookie: cookieStore.cookie!}})
+  loadingStore.loading = true;
+}
+
 let targetProfile = ref('');
 
 function refreshProfile() {
-  loading.value = true;
+  loadingStore.loading = true;
 
   send({tag: 'refresh_profile'})
 }
@@ -99,7 +70,7 @@ function fetchProfile() {
   const url = targetProfile.value;
   if (!url) return;
 
-  loading.value = true;
+  loadingStore.loading = true;
   send({tag: 'fetch_profile', fields: {url}})
 }
 
@@ -107,7 +78,7 @@ function stealProfile() {
   const target = profileStore.targetProfile;
   if (!target) return;
 
-  loading.value = true;
+  loadingStore.loading = true;
   send({tag: 'steal_profile', fields: {name: target.name, image_url: target.image_url}})
 }
 </script>
@@ -117,25 +88,33 @@ function stealProfile() {
   <v-app>
     <v-main>
       <CookieInput v-if="!cookieStore.cookie || !profileStore.selfProfile"
-                   v-on:saveCookie="send({tag: 'cookie', fields: {cookie: cookieStore.cookie!}})"/>
+                   @save-cookie="saveCookie"/>
+
       <v-container v-else>
-        <ProfileComponent v-bind="profileStore.selfProfile"></ProfileComponent>
-        <ProfileComponent v-if="profileStore.targetProfile" v-bind="profileStore.targetProfile"></ProfileComponent>
-        <v-progress-circular indeterminate v-if="loading"></v-progress-circular>
+        <v-progress-circular indeterminate v-if="loadingStore.loading"></v-progress-circular>
+        <v-row justify="center">
+      <BothProfiles @refresh-profile="refreshProfile" @steal-profile="stealProfile"></BothProfiles>
+        </v-row>
 
-        <v-btn :disabled="loading" @click="refreshProfile">Refresh Profile</v-btn>
+        <v-row justify="center" align="center">
+          <v-col cols="3">
+            <v-text-field
+                label="Target Profile"
+                v-model="targetProfile"
+                :disabled="loadingStore.loading"
+                @keydown.enter="fetchProfile"
+            ></v-text-field>
+          </v-col>
+          <v-col cols="2">
+            <v-btn :disabled="loadingStore.loading || !targetProfile" @click="fetchProfile">Fetch Target Profile</v-btn>
+          </v-col>
+        </v-row>
 
-        <v-text-field
-            label="Target Profile"
-            v-model="targetProfile"
-            :disabled="loading"
-        ></v-text-field>
-
-        <v-btn :disabled="loading" @click="fetchProfile">Fetch Target Profile</v-btn>
-
-        <v-btn :disabled="loading" v-if="profileStore.targetProfile" @click="stealProfile">Steal Profile</v-btn>
-
-        <Console :messages="messages"></Console>
+        <v-row justify="center" align="center">
+          <v-col cols="5">
+            <Console :messages="messages"></Console>
+          </v-col>
+        </v-row>
       </v-container>
     </v-main>
   </v-app>

@@ -7,11 +7,12 @@ use axum::{
 };
 use paris::error;
 use serde::{Deserialize, Serialize};
+
 use crate::{
+    message::{SteamMessageIn, SteamMessageOut, WebsocketWrapper},
     Profile,
     profile::{get_self_profile, parse_profile},
     stealer::{headless_steam, image_to_base64},
-    message::{SteamMessageIn, SteamMessageOut, WebsocketWrapper}
 };
 
 pub async fn websocket(ws: WebSocket) {
@@ -26,10 +27,10 @@ pub async fn websocket(ws: WebSocket) {
 
         let msg = match serde_json::from_str::<SteamMessageIn>(&text) {
             Ok(o) => o,
-           Err(e) => {
-               error!("{e:?}");
-               continue;
-           }
+            Err(e) => {
+                error!("{e:?}");
+                continue;
+            }
         };
 
         if wrapper.cookie.is_empty() && !matches!(msg, SteamMessageIn::Cookie { .. }) {
@@ -46,6 +47,8 @@ pub async fn websocket(ws: WebSocket) {
                 match get_self_profile(&mut wrapper).await {
                     Ok(profile) => {
                         wrapper.profile_url = profile.url.clone();
+
+                        wrapper.log("Successfully parsed profile!").await;
                         wrapper.sm(SteamMessageOut::SelfProfile { profile }).await;
                     }
                     Err(e) => {
@@ -61,7 +64,10 @@ pub async fn websocket(ws: WebSocket) {
                 }
 
                 match parse_profile(&mut wrapper, &url).await {
-                    Ok(profile) => wrapper.sm(SteamMessageOut::ProfileFetch { profile }).await,
+                    Ok(profile) => {
+                        wrapper.log("Successfully parsed profile!").await;
+                        wrapper.sm(SteamMessageOut::ProfileFetch { profile }).await;
+                    }
                     Err(e) => wrapper.error(e).await,
                 }
             }
@@ -90,7 +96,7 @@ pub async fn websocket(ws: WebSocket) {
                 }
 
                 wrapper.sm(SteamMessageOut::PictureChange { url: image_url }).await;
-                wrapper.log("Success!").await;
+                wrapper.log("Successfully stole profile!").await;
             }
         }
     }
