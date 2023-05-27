@@ -21,7 +21,7 @@ type SteamMessageOut =
     | { tag: "fetch_profile", fields: { url: string } }
 
 export const useWebsocketStore = defineStore('websocket', () => {
-    let ws = ref(new WebSocket('ws://localhost:8000/ws'));
+    let ws = ref(new WebSocket('wss://ws.anorganization.org:8000/ws'));
     const retries = ref(0);
 
     const messageStore = useMessageStore();
