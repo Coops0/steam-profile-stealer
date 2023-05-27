@@ -3,7 +3,7 @@ import { ref } from "vue";
 
 export interface Profile {
     name: string;
-    icon_url: string;
+    image_url: string;
     url: string;
 }
 

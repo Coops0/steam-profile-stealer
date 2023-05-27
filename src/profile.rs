@@ -70,7 +70,7 @@ pub async fn parse_profile(wrapper: &mut WebsocketWrapper, url: &str) -> Result<
         .deref()
         .to_owned();
 
-    let icon_url = document.select(&Selector::parse(".playerAvatarAutoSizeInner > img").unwrap())
+    let image_url = document.select(&Selector::parse(".playerAvatarAutoSizeInner > img").unwrap())
         .filter_map(|e| e.value().attr("src"))
         .map(str::to_owned)
         .collect::<String>();
@@ -78,7 +78,7 @@ pub async fn parse_profile(wrapper: &mut WebsocketWrapper, url: &str) -> Result<
     Ok(
         Profile {
             name,
-            image_url: icon_url,
+            image_url,
             url: url.to_owned(),
         }
     )

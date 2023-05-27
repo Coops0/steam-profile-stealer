@@ -26,7 +26,10 @@ pub async fn websocket(ws: WebSocket) {
 
         let msg = match serde_json::from_str::<SteamMessageIn>(&text) {
             Ok(o) => o,
-            _ => continue,
+           Err(e) => {
+               error!("{e:?}");
+               continue;
+           }
         };
 
         if wrapper.cookie.is_empty() && !matches!(msg, SteamMessageIn::Cookie { .. }) {
