@@ -3,6 +3,7 @@ name = "steam-profiler-stealer"
 version = "0.1.0"
 edition = "2021"
 
+# port = 3853
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -18,4 +19,5 @@ serde_json = "1.0.96"
 chromiumoxide = { git = "https://github.com/mattsse/chromiumoxide", features = ["tokio-runtime"], default-features = false, branch = "main"}
 base64 = "0.21.0"
 
-futures = "0.3.28"
+futures = "0.3.28" # needed for chrome oxide tokio handler thread
+openssl = { version = "0.10.52", features = ["vendored"] }

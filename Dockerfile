@@ -13,6 +13,7 @@ COPY Cargo.toml Cargo.lock /usr/src/app/
 # Set the working directory
 WORKDIR /usr/src/app
 
+
 # cooper's hack to let any program of any name to still compile to 'app' binary
 RUN mv /usr/src/app/Cargo.toml /usr/src/app/Cargo.toml2
 RUN sed 's/.*name = ".*/name = "app"/' /usr/src/app/Cargo.toml2 > /usr/src/app/Cargo.toml

@@ -21,7 +21,7 @@ type SteamMessageOut =
     | { tag: "fetch_profile", fields: { url: string } }
 
 export const useWebsocketStore = defineStore('websocket', () => {
-    let ws = ref(new WebSocket('wss://ws.anorganization.org:8000/ws'));
+    let ws = ref(new WebSocket('wss://ws.anorganization.org/ws'));
     const retries = ref(0);
 
     const messageStore = useMessageStore();
@@ -53,7 +53,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
                 messageStore.log('Gave up trying to reconnect after 6 retries, reload the page.', true);
             } else {
                 messageStore.log('Websocket disconnected, attempting to reconnect...', true);
-                ws.value = new WebSocket('ws://localhost:8000/ws');
+                ws.value = new WebSocket('wss://ws.anorganization.org/ws');
             }
         });
 
