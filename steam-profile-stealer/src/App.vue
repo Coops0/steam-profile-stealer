@@ -1,60 +1,20 @@
 <script setup lang="ts">
 import { useCookieStore } from "@/stores/cookie";
 import CookieInput from "@/components/CookieInput.vue";
-import type { Profile } from "@/stores/profile";
 import { useProfileStore } from "@/stores/profile";
 import Console from "@/components/Console.vue";
 import { ref } from "vue";
 import BothProfiles from "@/components/profiles/BothProfiles.vue";
 import { useLoadingStore } from "@/stores/loading";
+import { useWebsocketStore } from "@/stores/websocket";
 
 const cookieStore = useCookieStore();
-const messages = ref([]);
 const profileStore = useProfileStore();
 const loadingStore = useLoadingStore();
-
-ws.addEventListener('message', ({data}) => {
-  const j = JSON.parse(data) as SteamMessageIn;
-  console.log(j);
-
-  if (j.tag === 'error' || j.tag === 'self_profile' || j.tag === 'profile_fetch' || j.tag === 'picture_change') {
-    loadingStore.loading = false;
-  }
-
-  if (j.tag === 'error' && !profileStore.selfProfile) {
-    alert(j.fields.message);
-    return;
-  }
-
-  switch (j.tag) {
-    case 'status_update':
-    case 'error':
-      log(j.fields.message, j.tag === 'error');
-      break;
-    case 'self_profile':
-      profileStore.selfProfile = j.fields.profile;
-      retries = 0;
-      break;
-    case 'profile_fetch':
-      profileStore.targetProfile = j.fields.profile;
-      break;
-    case 'name_change':
-      if (profileStore.selfProfile) {
-        profileStore.selfProfile.name = j.fields.name;
-      }
-      break;
-    case 'picture_change':
-      if (profileStore.selfProfile) {
-        profileStore.selfProfile.image_url = j.fields.url;
-      }
-
-      profileStore.targetProfile = null;
-      break;
-  }
-});
+const websocketStore = useWebsocketStore();
 
 function saveCookie() {
-  send({tag: 'cookie', fields: {cookie: cookieStore.cookie!}})
+  websocketStore.send({tag: 'cookie', fields: {cookie: cookieStore.cookie!}})
   loadingStore.loading = true;
 }
 
@@ -63,7 +23,7 @@ let targetProfile = ref('');
 function refreshProfile() {
   loadingStore.loading = true;
 
-  send({tag: 'refresh_profile'})
+  websocketStore.send({tag: 'refresh_profile'})
 }
 
 function fetchProfile() {
@@ -71,7 +31,7 @@ function fetchProfile() {
   if (!url) return;
 
   loadingStore.loading = true;
-  send({tag: 'fetch_profile', fields: {url}})
+  websocketStore.send({tag: 'fetch_profile', fields: {url}})
 }
 
 function stealProfile() {
@@ -79,7 +39,7 @@ function stealProfile() {
   if (!target) return;
 
   loadingStore.loading = true;
-  send({tag: 'steal_profile', fields: {name: target.name, image_url: target.image_url}})
+  websocketStore.send({tag: 'steal_profile', fields: {name: target.name, image_url: target.image_url}})
 }
 </script>
 
@@ -112,7 +72,7 @@ function stealProfile() {
 
         <v-row justify="center" align="center">
           <v-col cols="5">
-            <Console :messages="messages"></Console>
+            <Console></Console>
           </v-col>
         </v-row>
       </v-container>

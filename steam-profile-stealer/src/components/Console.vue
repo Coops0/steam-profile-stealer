@@ -1,9 +1,11 @@
 <script setup lang="ts">
-defineProps<{ messages: { message: string; key: string; error: boolean; }[] }>();
+import { useMessageStore } from "@/stores/messages";
+
+const messageStore = useMessageStore();
 </script>
 
 <template>
-  <p v-for="message in messages" :key="message.key" :class="{'text-red': message.error}">
+  <p v-for="message in messageStore.messages" :key="message.key" :class="{'text-red': message.error}">
     {{ message.message }}
   </p>
 </template>

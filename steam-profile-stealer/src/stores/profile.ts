@@ -7,7 +7,7 @@ export interface Profile {
     url: string;
 }
 
-export const useProfileStore = defineStore('useProfileStore', () => {
+export const useProfileStore = defineStore('profile', () => {
     const selfProfile = ref<Profile | null>(null);
     const targetProfile = ref<Profile | null>(null);
 

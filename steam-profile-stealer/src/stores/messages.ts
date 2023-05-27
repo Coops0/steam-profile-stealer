@@ -1,8 +1,16 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { reactive } from "vue";
 
 export const useMessageStore = defineStore('message', () => {
-    const messages = ref<{message: string, key: string, error: boolean}[]>([]);
+    const messages = reactive<{message: string, key: string, error: boolean}[]>([]);
 
-    return {messages};
+    const log = (message: string, error: boolean = false) => {
+        messages.unshift({message, key: Math.random().toString(), error});
+
+        if (messages.length > 70) {
+            messages.pop();
+        }
+    }
+
+    return {messages, log};
 });
