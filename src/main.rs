@@ -1,28 +1,26 @@
-mod stealer;
-mod profile;
-mod websocket;
 mod message;
+mod profile;
+mod stealer;
+mod websocket;
 
+use crate::websocket::websocket;
 use anyhow::Result;
 use axum::{
+    extract::WebSocketUpgrade,
     response::Html,
-    Router,
-    Server,
     routing::get,
+    Router,
+    Server
 };
-use axum::extract::WebSocketUpgrade;
 use paris::{info, success};
 use serde::{Deserialize, Serialize};
-use crate::websocket::websocket;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let app = Router::new()
-        .route("/", get(root))
-        .route("/ws",
-               get(|ws: WebSocketUpgrade| async { ws.on_upgrade(websocket) }
-               ),
-        );
+    let app = Router::new().route("/", get(root)).route(
+        "/ws",
+        get(|ws: WebSocketUpgrade| async { ws.on_upgrade(websocket) }),
+    );
 
     info!("Attempting to bind server...");
     let builder = Server::bind(&"0.0.0.0:8000".parse()?);
@@ -36,7 +34,6 @@ async fn main() -> Result<()> {
 async fn root() -> Html<&'static str> {
     Html(include_str!("../templates/index.html"))
 }
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Profile {

@@ -15,7 +15,7 @@ defineEmits<{
 
 <template>
   <v-col cols="3">
-    <ProfileComponent v-bind="profileStore.selfProfile" class="pa-2 ma-2">
+    <ProfileComponent v-bind="profileStore.selfProfile!" class="pa-2 ma-2">
       <v-btn
           :disabled="loadingStore.loading"
           @click="$emit('refresh-profile')"
@@ -29,7 +29,7 @@ defineEmits<{
   </v-col>
 
   <v-col cols="3" v-if="profileStore.targetProfile">
-    <ProfileComponent v-bind="profileStore.targetProfile">
+    <ProfileComponent v-bind="profileStore.targetProfile!" class="pa-2 ma-2">
       <v-btn
           :disabled="loadingStore.loading"
           @click="$emit('steal-profile')"

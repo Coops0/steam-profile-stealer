@@ -1,16 +1,7 @@
-use axum::{
-    extract::{
-        WebSocketUpgrade,
-        ws::{Message, WebSocket},
-    },
-    response::Response,
-};
+use axum::extract::ws::{Message, WebSocket};
 use paris::error;
-use serde::{Deserialize, Serialize};
-
 use crate::{
     message::{SteamMessageIn, SteamMessageOut, WebsocketWrapper},
-    Profile,
     profile::{get_self_profile, parse_profile},
     stealer::{headless_steam, image_to_base64},
 };
@@ -72,7 +63,9 @@ pub async fn websocket(ws: WebSocket) {
                 }
             }
             SteamMessageIn::StealProfile { image_url, name } => {
-                if !image_url.starts_with("https://avatars.cloudflare.steamstatic.com/") && !image_url.starts_with("https://avatars.akamai.steamstatic.com/") {
+                if !image_url.starts_with("https://avatars.cloudflare.steamstatic.com/")
+                    && !image_url.starts_with("https://avatars.akamai.steamstatic.com/")
+                {
                     wrapper.error("bad image url").await;
                     continue;
                 }
@@ -95,7 +88,9 @@ pub async fn websocket(ws: WebSocket) {
                     continue;
                 }
 
-                wrapper.sm(SteamMessageOut::PictureChange { url: image_url }).await;
+                wrapper
+                    .sm(SteamMessageOut::PictureChange { url: image_url })
+                    .await;
                 wrapper.log("Successfully stole profile!").await;
             }
         }

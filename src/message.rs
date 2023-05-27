@@ -1,7 +1,6 @@
 use axum::extract::ws::{Message, WebSocket};
 use paris::error;
 use serde::{Deserialize, Serialize};
-
 use crate::Profile;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -49,8 +48,10 @@ impl WebsocketWrapper {
 
     async fn send(&mut self, text: String) {
         match &mut self.ws {
-            Some(o) => { let _ = o.send(Message::Text(text)).await; }
-            None => println!("{text}")
+            Some(o) => {
+                let _ = o.send(Message::Text(text)).await;
+            }
+            None => println!("{text}"),
         }
     }
 
@@ -82,7 +83,6 @@ impl WebsocketWrapper {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use paris::error;
 
     use crate::message::{SteamMessageIn, SteamMessageOut};
     use crate::Profile;
@@ -96,7 +96,7 @@ mod tests {
                 url: d.clone(),
                 name: d.clone(),
                 image_url: d.clone(),
-            }
+            },
         };
 
         let str = serde_json::to_string(&message)?;
@@ -117,7 +117,10 @@ mod tests {
         let serialized: SteamMessageIn = serde_json::from_str(str)?;
         assert_eq!(
             serialized,
-            SteamMessageIn::StealProfile { name: d.clone(), image_url: d.clone() }
+            SteamMessageIn::StealProfile {
+                name: d.clone(),
+                image_url: d.clone()
+            }
         );
 
         Ok(())

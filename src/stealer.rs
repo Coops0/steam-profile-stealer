@@ -1,16 +1,9 @@
+use crate::message::{SteamMessageOut, WebsocketWrapper};
 use anyhow::{anyhow, Context, Result};
-use base64::{
-    Engine,
-    engine::general_purpose,
-};
-use chromiumoxide::{
-    Browser,
-    BrowserConfig,
-    cdp::browser_protocol::network::CookieParam,
-};
+use base64::{engine::general_purpose, Engine};
+use chromiumoxide::{cdp::browser_protocol::network::CookieParam, Browser, BrowserConfig};
 use futures::StreamExt;
 use reqwest::get;
-use crate::message::{SteamMessageOut, WebsocketWrapper};
 
 pub async fn image_to_base64(wrapper: &mut WebsocketWrapper, image_url: &str) -> Result<String> {
     wrapper.log("Requesting image from url").await;
@@ -20,8 +13,14 @@ pub async fn image_to_base64(wrapper: &mut WebsocketWrapper, image_url: &str) ->
     Ok(general_purpose::STANDARD.encode(image))
 }
 
-pub async fn headless_steam(wrapper: &mut WebsocketWrapper, name: &str, base64_image: &str) -> Result<()> {
-    wrapper.log("Launching new headless chrome instance...").await;
+pub async fn headless_steam(
+    wrapper: &mut WebsocketWrapper,
+    name: &str,
+    base64_image: &str,
+) -> Result<()> {
+    wrapper
+        .log("Launching new headless chrome instance...")
+        .await;
     let (mut browser, mut handler) =
         Browser::launch(BrowserConfig::builder().build().unwrap()).await?;
 
@@ -33,7 +32,9 @@ pub async fn headless_steam(wrapper: &mut WebsocketWrapper, name: &str, base64_i
         }
     });
 
-    wrapper.log("Launched headless chrome instance, setting up cookie...").await;
+    wrapper
+        .log("Launched headless chrome instance, setting up cookie...")
+        .await;
 
     let page = browser.new_page("about:blank").await?;
     let cookie = CookieParam::builder()
@@ -46,14 +47,19 @@ pub async fn headless_steam(wrapper: &mut WebsocketWrapper, name: &str, base64_i
 
     page.set_cookie(cookie).await?;
 
-    wrapper.log("Set cookie, navigating to edit info page...").await;
-    page.goto(format!("{}/edit/info", wrapper.profile_url)).await?;
+    wrapper
+        .log("Set cookie, navigating to edit info page...")
+        .await;
+    page.goto(format!("{}/edit/info", wrapper.profile_url))
+        .await?;
 
     wrapper.log("Navigated to edit info page, loading...").await;
     // wait to load
     let _ = page.wait_for_navigation_response().await?;
 
-    wrapper.log("Page successfully loaded, clearing input...").await;
+    wrapper
+        .log("Page successfully loaded, clearing input...")
+        .await;
 
     // page.save_screenshot(
     //     ScreenshotParams::builder()
@@ -63,12 +69,13 @@ pub async fn headless_steam(wrapper: &mut WebsocketWrapper, name: &str, base64_i
     // ).await?;
 
     // clear old name
-    page
-        .evaluate("() => {document.querySelector('input[name=personaName]').clear()}")
+    page.evaluate("() => {document.querySelector('input[name=personaName]').clear()}")
         .await
         .context("Failed to execute clear input script (couldn't find personaName)")?;
 
-    wrapper.log("Cleared input, now typing into personaName").await;
+    wrapper
+        .log("Cleared input, now typing into personaName")
+        .await;
 
     page.find_element("input[name=personaName]")
         .await?
@@ -77,7 +84,9 @@ pub async fn headless_steam(wrapper: &mut WebsocketWrapper, name: &str, base64_i
         .type_str(name)
         .await?;
 
-    wrapper.log("Successfully typed into input, submitting...").await;
+    wrapper
+        .log("Successfully typed into input, submitting...")
+        .await;
 
     page.find_element("button[type=submit]")
         .await?
@@ -86,15 +95,23 @@ pub async fn headless_steam(wrapper: &mut WebsocketWrapper, name: &str, base64_i
 
     page.wait_for_navigation().await?;
 
-    wrapper.log("Finished changing name, navigating to edit avatar.").await;
-    wrapper.sm(SteamMessageOut::NameChange { name: name.to_owned() }).await;
+    wrapper
+        .log("Finished changing name, navigating to edit avatar.")
+        .await;
+    wrapper
+        .sm(SteamMessageOut::NameChange {
+            name: name.to_owned(),
+        })
+        .await;
 
-    page.goto(format!("{}/edit/avatar", wrapper.profile_url)).await?;
+    page.goto(format!("{}/edit/avatar", wrapper.profile_url))
+        .await?;
 
-    wrapper.log("Navigating to avatar page, running script to update image.").await;
+    wrapper
+        .log("Navigating to avatar page, running script to update image.")
+        .await;
 
-    page
-        .evaluate(include_str!("../image_stealer.js").replace("{image_base64}", base64_image))
+    page.evaluate(include_str!("../image_stealer.js").replace("{image_base64}", base64_image))
         .await
         .context("Failed to execute image stealer script")?;
 
@@ -102,17 +119,20 @@ pub async fn headless_steam(wrapper: &mut WebsocketWrapper, name: &str, base64_i
 
     let _ = page.wait_for_navigation().await?;
 
-    wrapper.log("Navigating to profile to clear aliases...").await;
+    wrapper
+        .log("Navigating to profile to clear aliases...")
+        .await;
     page.goto(&wrapper.profile_url).await?;
     let _ = page.wait_for_navigation_response().await?;
 
     wrapper.log("Got to profile, opening dialog...").await;
 
-    page
-        .evaluate("ShowClearAliasDialog()")
+    page.evaluate("ShowClearAliasDialog()")
         .await
         .context("Failed to run ShowClearAliasDialog() function")?;
-    wrapper.log("Ran ShowClearAliasDialog() function, clicking button").await;
+    wrapper
+        .log("Ran ShowClearAliasDialog() function, clicking button")
+        .await;
 
     let _ = page.wait_for_navigation_response().await?;
 
@@ -124,7 +144,9 @@ pub async fn headless_steam(wrapper: &mut WebsocketWrapper, name: &str, base64_i
     wrapper.log("Clicked clear aliases button.").await;
     let _ = page.wait_for_navigation_response().await?;
 
-    wrapper.log("Page finished navigation, closing browser.").await;
+    wrapper
+        .log("Page finished navigation, closing browser.")
+        .await;
 
     browser.close().await?;
     let _ = handle.await;
@@ -133,10 +155,10 @@ pub async fn headless_steam(wrapper: &mut WebsocketWrapper, name: &str, base64_i
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
+    use crate::message::WebsocketWrapper;
     use crate::profile::get_self_profile;
     use crate::stealer::{headless_steam, image_to_base64};
-    use crate::message::WebsocketWrapper;
+    use anyhow::Result;
 
     const AUTH_COOKIE: &str = "76561198286609782%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MTFEMF8yMjMxODEzRl9DRkNDRCIsICJzdWIiOiAiNzY1NjExOTgyODY2MDk3ODIiLCAiYXVkIjogWyAid2ViIiBdLCAiZXhwIjogMTY4NDQzODUyNywgIm5iZiI6IDE2NzU3MTE2MjMsICJpYXQiOiAxNjg0MzUxNjIzLCAianRpIjogIjBEMUVfMjI4REE3MDhfQzAxQ0EiLCAib2F0IjogMTY3ODMwMTkwMywgInJ0X2V4cCI6IDE2OTYzOTQwOTksICJwZXIiOiAwLCAiaXBfc3ViamVjdCI6ICI3MS4xOTEuODQuMjgiLCAiaXBfY29uZmlybWVyIjogIjcxLjE5MS44NC4yOCIgfQ.95-Oc8Q02HRQKEv2z82CV7M2KZ-BHwGU4pxQzb17_qKffoxM67WTb0vqTgwgv6s8F9PQXDwvpNsE9AL0JkM8BA";
 
