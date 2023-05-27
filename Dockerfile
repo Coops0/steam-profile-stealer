@@ -13,10 +13,11 @@ COPY Cargo.toml Cargo.lock /usr/src/app/
 # Set the working directory
 WORKDIR /usr/src/app
 
-
 # cooper's hack to let any program of any name to still compile to 'app' binary
 RUN mv /usr/src/app/Cargo.toml /usr/src/app/Cargo.toml2
 RUN sed 's/.*name = ".*/name = "app"/' /usr/src/app/Cargo.toml2 > /usr/src/app/Cargo.toml
+
+RUN apt update && apt install -y perl make musl-tools
 
 ## Install target platform (Cross-Compilation) --> Needed for Alpine
 RUN rustup target add x86_64-unknown-linux-musl

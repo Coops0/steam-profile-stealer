@@ -4,6 +4,7 @@ use base64::{engine::general_purpose, Engine};
 use chromiumoxide::{cdp::browser_protocol::network::CookieParam, Browser, BrowserConfig};
 use futures::StreamExt;
 use reqwest::get;
+use crate::CHROME_EXECUTABLE;
 
 pub async fn image_to_base64(wrapper: &mut WebsocketWrapper, image_url: &str) -> Result<String> {
     wrapper.log("Requesting image from url").await;
@@ -22,7 +23,12 @@ pub async fn headless_steam(
         .log("Launching new headless chrome instance...")
         .await;
     let (mut browser, mut handler) =
-        Browser::launch(BrowserConfig::builder().build().unwrap()).await?;
+        Browser::launch(
+            BrowserConfig::builder()
+                .chrome_executable(CHROME_EXECUTABLE.get().unwrap())
+                .build()
+                .unwrap()
+        ).await?;
 
     let handle = tokio::task::spawn(async move {
         while let Some(h) = handler.next().await {
