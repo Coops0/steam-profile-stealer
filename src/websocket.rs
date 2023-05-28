@@ -84,6 +84,7 @@ pub async fn websocket(ws: WebSocket) {
                 };
 
                 if let Err(e) = headless_steam(&mut wrapper, &name, &base64_image).await {
+                    error!("Error running headless steam {e:?}");
                     wrapper.error(e).await;
                     continue;
                 }

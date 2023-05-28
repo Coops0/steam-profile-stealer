@@ -22,13 +22,16 @@ pub async fn headless_steam(
     wrapper
         .log("Launching new headless chrome instance...")
         .await;
-    let (mut browser, mut handler) =
-        Browser::launch(
-            BrowserConfig::builder()
-                .chrome_executable(CHROME_EXECUTABLE.get().unwrap())
-                .build()
-                .unwrap()
-        ).await?;
+
+    let config =
+        BrowserConfig::builder()
+            .chrome_executable(CHROME_EXECUTABLE.get().unwrap())
+            .build()
+            .map_err(|e| anyhow!(e))?;
+
+    let (mut browser, mut handler) = Browser::launch(config)
+        .await
+        .context("failure to launch browser")?;
 
     let handle = tokio::task::spawn(async move {
         while let Some(h) = handler.next().await {

@@ -3,7 +3,7 @@ use paris::error;
 use serde::{Deserialize, Serialize};
 use crate::Profile;
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "tag", content = "fields")]
 #[serde(rename_all = "snake_case")]
 pub enum SteamMessageOut {
@@ -16,7 +16,7 @@ pub enum SteamMessageOut {
     PictureChange { url: String },
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "tag", content = "fields")]
 #[serde(rename_all = "snake_case")]
 pub enum SteamMessageIn {
