@@ -47,31 +47,42 @@ function stealProfile() {
 <template>
   <v-app>
     <v-main>
-      <CookieInput v-if="!cookieStore.cookie || !profileStore.selfProfile"
-                   @save-cookie="saveCookie"/>
-
+      <cookie-input v-if="!cookieStore.cookie || !profileStore.selfProfile"
+                    @save-cookie="saveCookie"/>
       <v-container v-else>
-        <v-progress-circular indeterminate v-if="loadingStore.loading"></v-progress-circular>
-        <v-row justify="center">
-      <BothProfiles @refresh-profile="refreshProfile" @steal-profile="stealProfile"></BothProfiles>
-        </v-row>
+        <v-row>
+          <v-col cols="6">
+            <v-container>
+              <v-row>
+                <both-profiles @refresh-profile="refreshProfile" @steal-profile="stealProfile"></both-profiles>
+              </v-row>
 
-        <v-row justify="center" align="center">
-          <v-col cols="3">
-            <v-text-field
-                label="Target Profile"
-                v-model="targetProfile"
-                :disabled="loadingStore.loading"
-                @keydown.enter="fetchProfile"
-            ></v-text-field>
+              <v-row>
+                <v-col>
+                  <v-text-field
+                      label="Target Profile"
+                      v-model="targetProfile"
+                      :disabled="loadingStore.loading"
+                      @keydown.enter="fetchProfile"
+                  ></v-text-field>
+                </v-col>
+                <v-col>
+                  <v-btn
+                      :disabled="loadingStore.loading || !targetProfile"
+                      @click="fetchProfile"
+                      variant="elevated"
+                      color="purple"
+                      append-icon="mdi-download"
+                  >Fetch
+                  </v-btn>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-progress-circular indeterminate v-if="loadingStore.loading"></v-progress-circular>
+              </v-row>
+            </v-container>
           </v-col>
-          <v-col cols="3">
-            <v-btn :disabled="loadingStore.loading || !targetProfile" @click="fetchProfile">Fetch Target Profile</v-btn>
-          </v-col>
-        </v-row>
-
-        <v-row justify="center" align="center">
-          <v-col cols="5">
+          <v-col cols="6">
             <Console></Console>
           </v-col>
         </v-row>

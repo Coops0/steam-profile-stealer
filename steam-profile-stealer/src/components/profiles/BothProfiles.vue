@@ -14,30 +14,31 @@ defineEmits<{
 </script>
 
 <template>
-  <v-col cols="4">
-    <ProfileComponent v-bind="profileStore.selfProfile!" class="pa-3 ma-3">
+  <v-col cols="7">
+    <profile-component v-bind="profileStore.selfProfile!" class="pa-3 ma-3">
       <v-btn
           :disabled="loadingStore.loading"
           @click="$emit('refresh-profile')"
           class="pa-3 ma-3"
-          variant="outlined"
+          variant="tonal"
           color="teal-accent-4"
-      >
-        Refresh Profile
+          append-icon="mdi-refresh"
+      >Refresh
       </v-btn>
-    </ProfileComponent>
+    </profile-component>
   </v-col>
 
-  <v-col cols="4" v-if="profileStore.targetProfile">
-    <ProfileComponent v-bind="profileStore.targetProfile!" class="pa-3 ma-3">
+  <v-col cols="7" v-if="profileStore.targetProfile">
+    <profile-component v-bind="profileStore.targetProfile!" class="pa-3 ma-3">
       <v-btn
           :disabled="loadingStore.loading"
           @click="$emit('steal-profile')"
           class="pa-3 ma-3"
           color="red"
-          variant="outlined"
-      >Steal Profile
+          variant="tonal"
+          append-icon="mdi-import"
+      >Steal
       </v-btn>
-    </ProfileComponent>
+    </profile-component>
   </v-col>
 </template>

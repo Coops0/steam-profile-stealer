@@ -7,7 +7,7 @@ export const useMessageStore = defineStore('message', () => {
     const log = (message: string, error: boolean = false) => {
         messages.unshift({message, key: Math.random().toString(), error});
 
-        if (messages.length > 70) {
+        if (messages.length > 25) {
             messages.pop();
         }
     }

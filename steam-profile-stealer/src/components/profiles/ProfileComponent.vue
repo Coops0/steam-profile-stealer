@@ -5,16 +5,14 @@ const profile = defineProps<Profile>();
 </script>
 
 <template>
-  <v-card
-      max-width="344"
-  >
+  <v-card>
     <v-img
         :src="profile.image_url"
-        height="200px"
+        cover
     ></v-img>
 
     <v-card-title>
-      {{ profile.name }}
+      {{ profile.name.trim().length === 0 ? '(no name)' : profile.name }}
     </v-card-title>
 
     <v-card-actions>
@@ -23,6 +21,7 @@ const profile = defineProps<Profile>();
           target="_blank"
           variant="text"
           color="deep-purple"
+          append-icon="mdi-open-in-new"
       >
         Link
       </v-btn>

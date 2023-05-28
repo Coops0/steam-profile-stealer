@@ -5,15 +5,20 @@ const messageStore = useMessageStore();
 </script>
 
 <template>
-  <p v-for="message in messageStore.messages" :key="message.key" :class="{'text-red': message.error}">
-    {{ message.message }}
-  </p>
+  <v-slide-y-transition group tag="v-list">
+    <template v-for="(message, i) in messageStore.messages" :key="message.key">
+      <v-divider v-if="i !== 0" :key="`div-${message.key}`"></v-divider>
+      <v-list-item>
+        <v-label
+            :class="{
+              'text-red': message.error,
+              'text-green': message.message.toLowerCase().includes('success'),
+              'text-yellow': i === 0 && !message.error
+        }"
+            v-text="message.message"
+        >
+        </v-label>
+      </v-list-item>
+    </template>
+  </v-slide-y-transition>
 </template>
-
-<style scoped>
-/*noinspection CssOverwrittenProperties*/
-p {
-  font-family: 'Roboto', sans-serif;
-  font-family: 'Roboto Mono', monospace;
-}
-</style>
