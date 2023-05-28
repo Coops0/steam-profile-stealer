@@ -34,9 +34,9 @@ async fn main() -> Result<()> {
     );
 
     info!("Attempting to bind server...");
-    let builder = Server::bind(&"0.0.0.0:8000".parse()?);
+    let builder = Server::bind(&"0.0.0.0:3853".parse()?);
 
-    success!("Successfully bound to port 8000");
+    success!("Successfully bound to port 3853");
     builder.serve(app.into_make_service()).await?;
 
     Ok(())
