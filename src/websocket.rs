@@ -16,6 +16,11 @@ pub async fn websocket(ws: WebSocket) {
             _ => continue,
         };
 
+        if &text == "ping" {
+            let _ = wrapper.raw_send(Message::Text("pong".to_string())).await;
+            continue;
+        }
+
         let msg = match serde_json::from_str::<SteamMessageIn>(&text) {
             Ok(o) => o,
             Err(e) => {

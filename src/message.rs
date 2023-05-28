@@ -1,3 +1,4 @@
+use axum::Error;
 use axum::extract::ws::{Message, WebSocket};
 use paris::error;
 use serde::{Deserialize, Serialize};
@@ -44,6 +45,10 @@ impl WebsocketWrapper {
 
     pub fn ws(&mut self) -> &mut Option<WebSocket> {
         &mut self.ws
+    }
+
+    pub async fn raw_send(&mut self, msg: Message) -> Result<(), Error> {
+        self.ws.as_mut().unwrap().send(msg).await
     }
 
     async fn send(&mut self, text: String) {
@@ -119,7 +124,7 @@ mod tests {
             serialized,
             SteamMessageIn::StealProfile {
                 name: d.clone(),
-                image_url: d.clone()
+                image_url: d.clone(),
             }
         );
 

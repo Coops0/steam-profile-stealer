@@ -37,6 +37,12 @@ export const useWebsocketStore = defineStore('websocket', () => {
 
     listeners();
 
+    setInterval(() => {
+        if (ws.value.readyState === ws.value.OPEN) {
+            ws.value.send('ping');
+        }
+    }, 2500);
+
     function listeners() {
         ws.value.addEventListener('open', () => {
             messageStore.log('Websocket successfully connected');
@@ -66,6 +72,8 @@ export const useWebsocketStore = defineStore('websocket', () => {
         })
 
         ws.value.addEventListener('message', ({data}) => {
+            if (data === 'pong') return;
+
             const j = JSON.parse(data) as SteamMessageIn;
             console.log(j);
 
