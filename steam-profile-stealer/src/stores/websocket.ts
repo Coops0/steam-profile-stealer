@@ -19,6 +19,7 @@ type SteamMessageOut =
     | { tag: "refresh_profile" }
     | { tag: "steal_profile", fields: { name: string, image_url: string } }
     | { tag: "fetch_profile", fields: { url: string } }
+    | { tag: "change_name", fields: { name: string } }
 
 export const useWebsocketStore = defineStore('websocket', () => {
     let ws = ref(new WebSocket('wss://ws.anorganization.org/ws'));
@@ -62,6 +63,7 @@ export const useWebsocketStore = defineStore('websocket', () => {
                 console.log('trying to reconnect');
                 messageStore.log('Websocket disconnected, attempting to reconnect...', true);
                 ws.value = new WebSocket('wss://ws.anorganization.org/ws');
+                listeners();
             }
         });
 
@@ -105,6 +107,11 @@ export const useWebsocketStore = defineStore('websocket', () => {
                 case 'name_change':
                     if (profileStore.selfProfile) {
                         profileStore.selfProfile.name = j.fields.name;
+                    }
+
+                    if (loadingStore.nameChangeLoading) {
+                        loadingStore.nameChangeLoading = false;
+                        loadingStore.loading = false;
                     }
                     break;
                 case 'picture_change':

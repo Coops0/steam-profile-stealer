@@ -25,6 +25,7 @@ pub enum SteamMessageIn {
     RefreshProfile,
     StealProfile { name: String, image_url: String },
     FetchProfile { url: String },
+    ChangeName { name: String }
 }
 
 pub struct WebsocketWrapper {

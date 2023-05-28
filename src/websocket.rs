@@ -17,7 +17,7 @@ pub async fn websocket(ws: WebSocket) {
         };
 
         if &text == "ping" {
-            let _ = wrapper.raw_send(Message::Text("pong".to_string())).await;
+            let _ = wrapper.raw_send(Message::Text("pong".to_owned())).await;
             continue;
         }
 
@@ -88,7 +88,7 @@ pub async fn websocket(ws: WebSocket) {
                     }
                 };
 
-                if let Err(e) = headless_steam(&mut wrapper, &name, &base64_image).await {
+                if let Err(e) = headless_steam(&mut wrapper, &name, Some(&base64_image)).await {
                     error!("Error running headless steam {e:?}");
                     wrapper.error(e).await;
                     continue;
@@ -98,6 +98,12 @@ pub async fn websocket(ws: WebSocket) {
                     .sm(SteamMessageOut::PictureChange { url: image_url })
                     .await;
                 wrapper.log("Successfully stole profile!").await;
+            }
+            SteamMessageIn::ChangeName { name } => {
+                if let Err(e) = headless_steam(&mut wrapper, &name, None).await {
+                    wrapper.error(e).await;
+                    continue;
+                }
             }
         }
     }

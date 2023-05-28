@@ -14,7 +14,7 @@ defineEmits<{
 </script>
 
 <template>
-  <v-col cols="7">
+  <v-col cols="6">
     <profile-component v-bind="profileStore.selfProfile!" class="pa-3 ma-3">
       <v-btn
           :disabled="loadingStore.loading"
@@ -28,7 +28,7 @@ defineEmits<{
     </profile-component>
   </v-col>
 
-  <v-col cols="7" v-if="profileStore.targetProfile">
+  <v-col cols="6" v-if="profileStore.targetProfile">
     <profile-component v-bind="profileStore.targetProfile!" class="pa-3 ma-3">
       <v-btn
           :disabled="loadingStore.loading"

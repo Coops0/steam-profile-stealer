@@ -3,7 +3,7 @@ import { useCookieStore } from "@/stores/cookie";
 import CookieInput from "@/components/CookieInput.vue";
 import { useProfileStore } from "@/stores/profile";
 import Console from "@/components/Console.vue";
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import BothProfiles from "@/components/profiles/BothProfiles.vue";
 import { useLoadingStore } from "@/stores/loading";
 import { useWebsocketStore } from "@/stores/websocket";
@@ -19,6 +19,7 @@ function saveCookie() {
 }
 
 let targetProfile = ref('');
+let name = ref('');
 
 function refreshProfile() {
   loadingStore.loading = true;
@@ -40,6 +41,16 @@ function stealProfile() {
 
   loadingStore.loading = true;
   websocketStore.send({tag: 'steal_profile', fields: {name: target.name, image_url: target.image_url}})
+}
+
+function editName() {
+  const n = name.value;
+  if (!n) return;
+
+  loadingStore.loading = true;
+  loadingStore.nameChangeLoading = true;
+  websocketStore.send({tag: 'change_name', fields: {name: n}});
+  name.value = '';
 }
 </script>
 
@@ -74,6 +85,26 @@ function stealProfile() {
                       color="purple"
                       append-icon="mdi-download"
                   >Fetch
+                  </v-btn>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col>
+                  <v-text-field
+                      label="Custom Name"
+                      v-model="name"
+                      :disabled="loadingStore.loading"
+                      @keydown.enter="editName"
+                  ></v-text-field>
+                </v-col>
+                <v-col>
+                  <v-btn
+                      :disabled="loadingStore.loading"
+                      @click="editName"
+                      variant="tonal"
+                      color="orange"
+                      append-icon="mdi-human-edit"
+                  >Edit Name
                   </v-btn>
                 </v-col>
               </v-row>
