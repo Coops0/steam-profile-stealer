@@ -50,8 +50,10 @@ export const useWebsocketStore = defineStore('websocket', () => {
             console.log('websocket closed', retries, c);
 
             if (++retries.value > 5) {
+                console.log('gave up reconnecting');
                 messageStore.log('Gave up trying to reconnect after 6 retries, reload the page.', true);
             } else {
+                console.log('trying to reconnect');
                 messageStore.log('Websocket disconnected, attempting to reconnect...', true);
                 ws.value = new WebSocket('wss://ws.anorganization.org/ws');
             }

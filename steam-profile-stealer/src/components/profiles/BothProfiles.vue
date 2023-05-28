@@ -14,12 +14,12 @@ defineEmits<{
 </script>
 
 <template>
-  <v-col cols="3">
-    <ProfileComponent v-bind="profileStore.selfProfile!" class="pa-2 ma-2">
+  <v-col cols="4">
+    <ProfileComponent v-bind="profileStore.selfProfile!" class="pa-3 ma-3">
       <v-btn
           :disabled="loadingStore.loading"
           @click="$emit('refresh-profile')"
-          class="pa-2 ma-2"
+          class="pa-3 ma-3"
           variant="outlined"
           color="teal-accent-4"
       >
@@ -28,12 +28,12 @@ defineEmits<{
     </ProfileComponent>
   </v-col>
 
-  <v-col cols="3" v-if="profileStore.targetProfile">
-    <ProfileComponent v-bind="profileStore.targetProfile!" class="pa-2 ma-2">
+  <v-col cols="4" v-if="profileStore.targetProfile">
+    <ProfileComponent v-bind="profileStore.targetProfile!" class="pa-3 ma-3">
       <v-btn
           :disabled="loadingStore.loading"
           @click="$emit('steal-profile')"
-          class="pa-2 ma-2"
+          class="pa-3 ma-3"
           color="red"
           variant="outlined"
       >Steal Profile

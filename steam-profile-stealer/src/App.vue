@@ -65,7 +65,7 @@ function stealProfile() {
                 @keydown.enter="fetchProfile"
             ></v-text-field>
           </v-col>
-          <v-col cols="2">
+          <v-col cols="3">
             <v-btn :disabled="loadingStore.loading || !targetProfile" @click="fetchProfile">Fetch Target Profile</v-btn>
           </v-col>
         </v-row>
