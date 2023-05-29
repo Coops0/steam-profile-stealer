@@ -1,2 +1,5 @@
-*
-!target/x86_64-unknown-linux-musl/release/steam-profile-stealer
+steam-profile-stealer*
+target*
+build.sh
+Cranky.toml
+.idea

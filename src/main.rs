@@ -1,6 +1,5 @@
 mod message;
 mod profile;
-mod stealer;
 mod websocket;
 mod multipart;
 
