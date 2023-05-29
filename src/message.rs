@@ -11,7 +11,7 @@ pub enum SteamMessageOut {
     StatusUpdate { message: String },
     SelfProfile { profile: Profile },
     ProfileFetch { profile: Profile },
-    Error { message: String },
+    Error { message: String, debug: String },
 
     NameChange { name: String },
     PictureChange { url: String },
@@ -79,10 +79,13 @@ impl WebsocketWrapper {
         self.sm(SteamMessageOut::StatusUpdate { message }).await;
     }
 
-    pub async fn error<E: ToString>(&mut self, error: E) {
-        let error = error.to_string();
-
-        self.sm(SteamMessageOut::Error { message: error }).await;
+    pub async fn error<E: Into<anyhow::Error>>(&mut self, error: E) {
+        self.sm(
+            SteamMessageOut::Error {
+                message: error.to_string(),
+                debug: format!("{error:?}"),
+            }
+        ).await;
     }
 }
 
