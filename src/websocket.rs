@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use crate::{message::{SteamMessageIn, SteamMessageOut, WebsocketWrapper}, profile::{get_self_profile, parse_profile}, Profile, stealer::{headless_steam, image_to_base64}};
+use crate::{message::{SteamMessageIn, SteamMessageOut, WebsocketWrapper}, profile::{get_self_profile, parse_profile}, Profile};
 use axum::extract::ws::{Message, WebSocket};
 use paris::error;
 use crate::multipart::update::update;

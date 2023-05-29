@@ -1,4 +1,4 @@
-use reqwest::{Client, ClientBuilder};
+use reqwest::Client;
 use axum::http::header;
 use scraper::Selector;
 use anyhow::Context;
@@ -68,6 +68,7 @@ pub async fn new_name_details(wrapper: &mut WebsocketWrapper, new_name: &str) ->
     Ok((session_id, fields))
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn s<S: ToString>(name: &str, value: S) -> (String, String) {
     (name.to_owned(), value.to_string())
 }

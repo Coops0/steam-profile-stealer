@@ -3,7 +3,7 @@ use anyhow::{bail, Context, Result};
 use reqwest::{header, redirect::Policy, Client};
 use scraper::Selector;
 use std::ops::Deref;
-use once_cell::sync::{Lazy, OnceCell};
+
 
 pub async fn get_self_profile(wrapper: &mut WebsocketWrapper) -> Result<Profile> {
     let client = Client::builder().redirect(Policy::none()).build().unwrap();

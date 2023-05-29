@@ -1,15 +1,15 @@
 use std::collections::HashMap;
-use std::ops::Deref;
-use anyhow::{anyhow, bail, Context, Result};
+
+use anyhow::{bail, Result};
 use mpart_async::client::MultipartRequest;
 use mpart_async::filestream::FileStream;
-use reqwest::{Body, Client, ClientBuilder, get, header, Request, StatusCode};
+use reqwest::{Body, Client, get, header, StatusCode};
 use reqwest::header::CONTENT_TYPE;
-use scraper::{Element, Selector};
-use serde::{Deserialize, Serialize};
+
+use serde::Deserialize;
 use crate::message::WebsocketWrapper;
-use crate::multipart::data_profile_edit::DataProfileEdit;
-use crate::multipart::profile_details::new_name_details;
+
+
 
 pub async fn update_name(
     wrapper: WebsocketWrapper,

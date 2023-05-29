@@ -5,6 +5,7 @@ use chromiumoxide::{cdp::browser_protocol::network::CookieParam, Browser, Browse
 use futures::StreamExt;
 use reqwest::get;
 
+#[allow(unused)]
 pub async fn image_to_base64(wrapper: &mut WebsocketWrapper, image_url: &str) -> Result<String> {
     wrapper.log("Requesting image from url").await;
     let image = get(image_url).await?.bytes().await?;
@@ -15,6 +16,7 @@ pub async fn image_to_base64(wrapper: &mut WebsocketWrapper, image_url: &str) ->
     Ok(base64)
 }
 
+#[allow(unused)]
 pub async fn headless_steam(
     wrapper: &mut WebsocketWrapper,
     name: &str,

@@ -1,5 +1,5 @@
 use crate::message::{SteamMessageOut, WebsocketWrapper};
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{bail, Context, Result};
 use tokio::join;
 use crate::multipart::multipart_form::{clear_aliases, update_image, update_name};
 use crate::multipart::profile_details::new_name_details;
