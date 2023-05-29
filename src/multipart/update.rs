@@ -47,7 +47,7 @@ pub async fn update(wrapper: &mut WebsocketWrapper, new_name: &str, image_url: O
 
     let name = name.context("Failure updating name!")?;
 
-    if name.success == 1 {
+    if name.success == 1 || (name.success == 2 && name.err_msg == "An error occurred while setting account details<br />") {
         wrapper
             .sm(SteamMessageOut::NameChange { name: new_name.to_owned() })
             .await;

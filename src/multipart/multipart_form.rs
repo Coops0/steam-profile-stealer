@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ops::Deref;
 use anyhow::{anyhow, bail, Context, Result};
 use mpart_async::client::MultipartRequest;
@@ -13,7 +14,7 @@ use crate::multipart::profile_details::new_name_details;
 pub async fn update_name(
     wrapper: WebsocketWrapper,
     session_id: &str,
-    fields: Vec<(String, String)>
+    fields: Vec<(String, String)>,
 ) -> Result<UpdateNameResponse> {
     let mut mpart = MultipartRequest::<FileStream>::new("------WebKitFormBoundaryhSUnLTjMGhbdZ0Qg");
     for (name, value) in fields {
@@ -50,12 +51,11 @@ pub async fn update_image(wrapper: WebsocketWrapper, session_id: &str, image_url
 
     let image = get(image_url).await?;
 
-    mpart.add_stream("avatar", "joe.jpg", "image/jpeg", image.bytes_stream());
-
+    mpart.add_stream("avatar", "blob", "image/jpg", image.bytes_stream());
 
     mpart.add_field("type", "player_avatar_image");
-    mpart.add_field("sessionid", &wrapper.profile.id);
-    mpart.add_field("sId", session_id);
+    mpart.add_field("sessionid", session_id);
+    mpart.add_field("sId", &wrapper.profile.id);
     mpart.add_field("doSub", "1");
     mpart.add_field("json", "1");
 
@@ -83,15 +83,18 @@ pub struct UpdateImageResponse {
 }
 
 pub async fn clear_aliases(wrapper: WebsocketWrapper, session_id: &str) -> Result<()> {
+    let form = HashMap::from([("sessionid", session_id)]);
+
     let res = Client::new()
-        .post(format!("{}/ajaxaliases/", wrapper.profile.url))
+        .post(format!("{}/ajaxclearaliashistory/", wrapper.profile.url))
         .header(header::COOKIE, format!("steamLoginSecure={};sessionid={session_id}", wrapper.cookie))
         .header(header::USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
+        .form(&form)
         .send()
         .await?;
 
     if res.status() != StatusCode::OK {
-        bail!("Status code for clearing aliases was not 200");
+        bail!("Status code for clearing aliases was not 200 but {}", res.status());
     }
 
     Ok(())
