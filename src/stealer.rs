@@ -56,7 +56,7 @@ pub async fn headless_steam(
     wrapper
         .log("Set cookie, navigating to edit info page...")
         .await;
-    page.goto(format!("{}/edit/info", wrapper.profile_url))
+    page.goto(format!("{}/edit/info", wrapper.profile.url))
         .await?;
 
     wrapper.log("Navigated to edit info page, loading...").await;
@@ -114,7 +114,7 @@ pub async fn headless_steam(
 
     if let Some(base64_image) = base64_image {
         wrapper.log("Navigating to edit avatar page...").await;
-        page.goto(format!("{}/edit/avatar", wrapper.profile_url))
+        page.goto(format!("{}/edit/avatar", wrapper.profile.url))
             .await?;
 
         wrapper
@@ -134,7 +134,7 @@ pub async fn headless_steam(
         .log("Navigating to profile page to clear aliases...")
         .await;
 
-    page.goto(&wrapper.profile_url).await?;
+    page.goto(&wrapper.profile.url).await?;
     let _ = page.wait_for_navigation_response().await?;
 
     wrapper.log("Got to profile, opening dialog...").await;
@@ -182,7 +182,7 @@ mod tests {
     async fn headless_steam_test() -> Result<()> {
         let mut wrapper = WebsocketWrapper::new(None);
         wrapper.cookie = AUTH_COOKIE.to_owned();
-        wrapper.profile_url = "https://steamcommunity.com/id/coops_".to_owned();
+        wrapper.profile.url = "https://steamcommunity.com/id/coops_".to_owned();
 
         let img = image_to_base64(&mut wrapper, "https://avatars.cloudflare.steamstatic.com/3c783af9215d49b3daa150d95444489aede2f855_full.jpg").await?;
 
@@ -190,7 +190,7 @@ mod tests {
 
         let profile = get_self_profile(&mut wrapper).await?;
         assert_eq!(&profile.name, "your friend");
-        assert_eq!(profile.url, wrapper.profile_url);
+        assert_eq!(profile.url, wrapper.profile.url);
 
         Ok(())
     }

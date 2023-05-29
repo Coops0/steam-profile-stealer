@@ -3,6 +3,7 @@ use anyhow::{bail, Context, Result};
 use reqwest::{header, redirect::Policy, Client};
 use scraper::Selector;
 use std::ops::Deref;
+use once_cell::sync::{Lazy, OnceCell};
 
 pub async fn get_self_profile(wrapper: &mut WebsocketWrapper) -> Result<Profile> {
     let client = Client::builder().redirect(Policy::none()).build().unwrap();
@@ -87,6 +88,15 @@ pub async fn parse_profile(wrapper: &mut WebsocketWrapper, url: &str) -> Result<
         (name, image_url)
     };
 
+    let start_bytes = text.find(r#""steamid":"#)
+        .context("no start steam id found in html")? + 11;
+    let end_bytes = text.find(r#","personaname":""#)
+        .context("no end quote? this shouldn't happen")? - 1;
+
+    let id = text.get(start_bytes..end_bytes)
+        .context("failed to get start bytes to end bytes index")?
+        .to_owned();
+
     wrapper
         .log(format!(
             "Successfully parsed profile with name of {name} and image url of {image_url}"
@@ -97,6 +107,7 @@ pub async fn parse_profile(wrapper: &mut WebsocketWrapper, url: &str) -> Result<
         name,
         image_url,
         url: url.to_owned(),
+        id,
     })
 }
 
@@ -128,7 +139,7 @@ mod tests {
             &mut wrapper,
             "https://steamcommunity.com/id/gabelogannewell",
         )
-        .await?;
+            .await?;
 
         assert!(&profile
             .image_url
@@ -138,6 +149,7 @@ mod tests {
             &profile.url,
             "https://steamcommunity.com/id/gabelogannewell"
         );
+        assert_eq!(&profile.id, "76561197960287930");
 
         Ok(())
     }

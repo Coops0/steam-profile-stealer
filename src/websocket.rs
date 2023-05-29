@@ -1,8 +1,4 @@
-use crate::{
-    message::{SteamMessageIn, SteamMessageOut, WebsocketWrapper},
-    profile::{get_self_profile, parse_profile},
-    stealer::{headless_steam, image_to_base64},
-};
+use crate::{message::{SteamMessageIn, SteamMessageOut, WebsocketWrapper}, profile::{get_self_profile, parse_profile}, Profile, stealer::{headless_steam, image_to_base64}};
 use axum::extract::ws::{Message, WebSocket};
 use paris::error;
 
@@ -42,14 +38,14 @@ pub async fn websocket(ws: WebSocket) {
             SteamMessageIn::Cookie { .. } | SteamMessageIn::RefreshProfile => {
                 match get_self_profile(&mut wrapper).await {
                     Ok(profile) => {
-                        wrapper.profile_url = profile.url.clone();
+                        wrapper.profile = profile.clone();
 
                         wrapper.log("Successfully parsed profile!").await;
                         wrapper.sm(SteamMessageOut::SelfProfile { profile }).await;
                     }
                     Err(e) => {
                         wrapper.cookie = String::new();
-                        wrapper.profile_url = String::new();
+                        wrapper.profile = Profile::default();
                         wrapper.error(e.context("Failed to use cookie")).await;
                     }
                 }
@@ -64,7 +60,7 @@ pub async fn websocket(ws: WebSocket) {
                         wrapper.log("Successfully parsed profile!").await;
                         wrapper.sm(SteamMessageOut::ProfileFetch { profile }).await;
                     }
-                    Err(e) => wrapper.error(e.context("Failed to steal profile!")).await,
+                    Err(e) => wrapper.error(e.context("Failed to fetch profile!")).await,
                 }
             }
             SteamMessageIn::StealProfile { image_url, name } => {
@@ -75,7 +71,7 @@ pub async fn websocket(ws: WebSocket) {
                     continue;
                 }
 
-                if wrapper.profile_url.is_empty() {
+                if wrapper.profile.url.is_empty() {
                     wrapper
                         .error("Nno profile url has been set yet? This should be impossible.")
                         .await;

@@ -32,15 +32,15 @@ pub struct WebsocketWrapper {
     // Only None for testing
     ws: Option<WebSocket>,
     pub cookie: String,
-    pub profile_url: String,
+    pub profile: Profile,
 }
 
 impl WebsocketWrapper {
-    pub const fn new(ws: Option<WebSocket>) -> Self {
+    pub fn new(ws: Option<WebSocket>) -> Self {
         Self {
             ws,
             cookie: String::new(),
-            profile_url: String::new(),
+            profile: Profile::default(),
         }
     }
 
@@ -102,13 +102,14 @@ mod tests {
                 url: d.clone(),
                 name: d.clone(),
                 image_url: d.clone(),
+                id: d,
             },
         };
 
         let str = serde_json::to_string(&message)?;
         assert_eq!(
             str,
-            r#"{"tag":"self_profile","fields":{"profile":{"name":"dummy","image_url":"dummy","url":"dummy"}}}"#
+            r#"{"tag":"self_profile","fields":{"profile":{"name":"dummy","image_url":"dummy","url":"dummy","id:"dummy"}}}"#
         );
 
         Ok(())
