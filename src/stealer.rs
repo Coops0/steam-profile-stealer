@@ -10,7 +10,9 @@ pub async fn image_to_base64(wrapper: &mut WebsocketWrapper, image_url: &str) ->
     let image = get(image_url).await?.bytes().await?;
 
     wrapper.log("Requested image, encoding base64...").await;
-    Ok(general_purpose::STANDARD.encode(image))
+    let base64 = general_purpose::STANDARD.encode(image);
+    wrapper.log("Successfully encoded image in base64").await;
+    Ok(base64)
 }
 
 pub async fn headless_steam(
@@ -22,10 +24,7 @@ pub async fn headless_steam(
         .log("Launching new headless chrome instance...")
         .await;
 
-    let config =
-        BrowserConfig::builder()
-            .build()
-            .map_err(|e| anyhow!(e))?;
+    let config = BrowserConfig::builder().build().map_err(|e| anyhow!(e))?;
 
     let (mut browser, mut handler) = Browser::launch(config)
         .await
@@ -40,7 +39,7 @@ pub async fn headless_steam(
     });
 
     wrapper
-        .log("Launched headless chrome instance, setting up cookie...")
+        .log("Successfully launched headless chrome instance, setting up cookie...")
         .await;
 
     let page = browser.new_page("about:blank").await?;
@@ -65,7 +64,7 @@ pub async fn headless_steam(
     let _ = page.wait_for_navigation_response().await?;
 
     wrapper
-        .log("Page successfully loaded, clearing input...")
+        .log("Successfully loaded page, clearing name input...")
         .await;
 
     // page.save_screenshot(
@@ -92,7 +91,7 @@ pub async fn headless_steam(
         .await?;
 
     wrapper
-        .log("Successfully typed into input, submitting...")
+        .log("Successfully typed into input, submitting form...")
         .await;
 
     page.find_element("button[type=submit]")
@@ -100,11 +99,13 @@ pub async fn headless_steam(
         .click()
         .await?;
 
+    wrapper
+        .log("Clicked submit button, awaiting navigation...")
+        .await;
+
     page.wait_for_navigation().await?;
 
-    wrapper
-        .log("Successfully changed name!")
-        .await;
+    wrapper.log("Successfully changed name!").await;
     wrapper
         .sm(SteamMessageOut::NameChange {
             name: name.to_owned(),
@@ -112,51 +113,56 @@ pub async fn headless_steam(
         .await;
 
     if let Some(base64_image) = base64_image {
+        wrapper.log("Navigating to edit avatar page...").await;
         page.goto(format!("{}/edit/avatar", wrapper.profile_url))
             .await?;
 
         wrapper
-            .log("Navigating to avatar page, running script to update image.")
+            .log("Navigated to avatar page, running script to update image...")
             .await;
 
         page.evaluate(include_str!("../image_stealer.js").replace("{image_base64}", base64_image))
             .await
             .context("Failed to execute image stealer script")?;
 
-        wrapper.log("Finished updating image.").await;
+        wrapper.log("Successfully updated image via script!").await;
 
         let _ = page.wait_for_navigation().await?;
-
-        wrapper
-            .log("Navigating to profile to clear aliases...")
-            .await;
-        page.goto(&wrapper.profile_url).await?;
-        let _ = page.wait_for_navigation_response().await?;
-
-        wrapper.log("Got to profile, opening dialog...").await;
-
-        page.evaluate("ShowClearAliasDialog()")
-            .await
-            .context("Failed to run ShowClearAliasDialog() function")?;
-        wrapper
-            .log("Ran ShowClearAliasDialog() function, clicking button")
-            .await;
-
-        let _ = page.wait_for_navigation_response().await?;
-
-        page.find_element(".btn_green_steamui")
-            .await?
-            .click()
-            .await?;
-
-        wrapper.log("Clicked clear aliases button.").await;
-        let _ = page.wait_for_navigation_response().await?;
-
-
-        wrapper
-            .log("Page finished navigation, closing browser.")
-            .await;
     }
+
+    wrapper
+        .log("Navigating to profile page to clear aliases...")
+        .await;
+
+    page.goto(&wrapper.profile_url).await?;
+    let _ = page.wait_for_navigation_response().await?;
+
+    wrapper.log("Got to profile, opening dialog...").await;
+
+    page.evaluate("ShowClearAliasDialog()")
+        .await
+        .context("Failed to run ShowClearAliasDialog() function")?;
+
+    wrapper
+        .log("Ran ShowClearAliasDialog() function to open modal, clicking button")
+        .await;
+
+    let _ = page.wait_for_navigation_response().await?;
+
+    page.find_element(".btn_green_steamui")
+        .await?
+        .click()
+        .await?;
+
+    wrapper
+        .log("Clicked clear aliases button, waiting for request to finish...")
+        .await;
+
+    let _ = page.wait_for_navigation_response().await?;
+
+    wrapper
+        .log("Successfully cleared previous aliases! Closing browser...")
+        .await;
 
     browser.close().await?;
     let _ = handle.await;

@@ -1,10 +1,10 @@
-use axum::extract::ws::{Message, WebSocket};
-use paris::error;
 use crate::{
     message::{SteamMessageIn, SteamMessageOut, WebsocketWrapper},
     profile::{get_self_profile, parse_profile},
     stealer::{headless_steam, image_to_base64},
 };
+use axum::extract::ws::{Message, WebSocket};
+use paris::error;
 
 pub async fn websocket(ws: WebSocket) {
     let mut wrapper = WebsocketWrapper::new(Some(ws));
@@ -50,7 +50,7 @@ pub async fn websocket(ws: WebSocket) {
                     Err(e) => {
                         wrapper.cookie = String::new();
                         wrapper.profile_url = String::new();
-                        wrapper.error(e).await;
+                        wrapper.error(e.context("Failed to use cookie")).await;
                     }
                 }
             }
@@ -64,19 +64,21 @@ pub async fn websocket(ws: WebSocket) {
                         wrapper.log("Successfully parsed profile!").await;
                         wrapper.sm(SteamMessageOut::ProfileFetch { profile }).await;
                     }
-                    Err(e) => wrapper.error(e).await,
+                    Err(e) => wrapper.error(e.context("Failed to steal profile!")).await,
                 }
             }
             SteamMessageIn::StealProfile { image_url, name } => {
                 if !image_url.starts_with("https://avatars.cloudflare.steamstatic.com/")
                     && !image_url.starts_with("https://avatars.akamai.steamstatic.com/")
                 {
-                    wrapper.error("bad image url").await;
+                    wrapper.error("Bad image url!").await;
                     continue;
                 }
 
                 if wrapper.profile_url.is_empty() {
-                    wrapper.error("no profile url set yet").await;
+                    wrapper
+                        .error("Nno profile url has been set yet? This should be impossible.")
+                        .await;
                     continue;
                 }
 
@@ -97,12 +99,18 @@ pub async fn websocket(ws: WebSocket) {
                 wrapper
                     .sm(SteamMessageOut::PictureChange { url: image_url })
                     .await;
+
                 wrapper.log("Successfully stole profile!").await;
             }
             SteamMessageIn::ChangeName { name } => {
-                if let Err(e) = headless_steam(&mut wrapper, &name, None).await {
-                    wrapper.error(e).await;
-                    continue;
+                match headless_steam(&mut wrapper, &name, None).await {
+                    Ok(_) => {
+                        wrapper.log("Successfully changed name!").await;
+                    }
+                    Err(e) => {
+                        wrapper.error(e.context("Failed to change name!")).await;
+                        continue;
+                    }
                 }
             }
         }

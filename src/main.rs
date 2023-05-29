@@ -5,16 +5,9 @@ mod websocket;
 
 use crate::websocket::websocket;
 use anyhow::Result;
-use axum::{
-    extract::WebSocketUpgrade,
-    response::Html,
-    routing::get,
-    Router,
-    Server,
-};
+use axum::{extract::WebSocketUpgrade, response::Html, routing::get, Router, Server};
 use paris::{info, success};
 use serde::{Deserialize, Serialize};
-
 
 #[tokio::main]
 async fn main() -> Result<()> {

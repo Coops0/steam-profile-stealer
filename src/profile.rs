@@ -1,7 +1,4 @@
-use crate::{
-    message::WebsocketWrapper,
-    Profile
-};
+use crate::{message::WebsocketWrapper, Profile};
 use anyhow::{bail, Context, Result};
 use reqwest::{header, redirect::Policy, Client};
 use scraper::Selector;
@@ -24,7 +21,7 @@ pub async fn get_self_profile(wrapper: &mut WebsocketWrapper) -> Result<Profile>
         .context("failed to req (server error)")?;
 
     wrapper
-        .log("Received response, Parsing location header...")
+        .log("Successfully received response, Parsing location header...")
         .await;
 
     let mut location = res
@@ -33,10 +30,8 @@ pub async fn get_self_profile(wrapper: &mut WebsocketWrapper) -> Result<Profile>
         .and_then(|l| l.to_str().ok())
         .unwrap_or_default();
 
-    if location.is_empty()
-        || location == "https://steamcommunity.com/login/home/?goto=%2Fmy%2Fprofile"
-    {
-        bail!("redirect is invalid (bad cookie)");
+    if location.is_empty() || !location.starts_with("https://steamcommunity.com/id/") {
+        bail!("Redirect is not a profile!");
     }
 
     wrapper
@@ -54,36 +49,49 @@ pub async fn get_self_profile(wrapper: &mut WebsocketWrapper) -> Result<Profile>
 
 pub async fn parse_profile(wrapper: &mut WebsocketWrapper, url: &str) -> Result<Profile> {
     wrapper
-        .log(format!("Sending request to your profile {url}..."))
+        .log(format!("Sending request to profile {url}..."))
         .await;
+
     let resp = Client::default().get(url)
         .header(header::USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
         .send()
         .await?;
 
-    wrapper.log("Got profile response, parsing HTML...").await;
+    wrapper
+        .log("Successfully got profile response, parsing HTML...")
+        .await;
 
     let text = resp.text().await?;
-    let document = scraper::Html::parse_document(&text);
-    // .actual_persona_name
-    // .playerAvatarAutoSizeInner > img
-    let name = document
-        .select(&Selector::parse(".actual_persona_name").unwrap())
-        .flat_map(|e| e.text())
-        // for some fucking reason there are 2 elements,
-        // one w/ the name and the other is " "
-        .filter(|e| !e.is_empty())
-        .collect::<Vec<&str>>()
-        .first()
-        .context("no first element")?
-        .deref()
-        .to_owned();
+    let (name, image_url) = {
+        let document = scraper::Html::parse_document(&text);
+        // .actual_persona_name
+        // .playerAvatarAutoSizeInner > img
+        let name = document
+            .select(&Selector::parse(".actual_persona_name").unwrap())
+            .flat_map(|e| e.text())
+            // for some fucking reason there are 2 elements,
+            // one w/ the name and the other is " "
+            .filter(|e| !e.is_empty())
+            .collect::<Vec<&str>>()
+            .first()
+            .context("Couldn't find '.actual_persona_name' element")?
+            .deref()
+            .to_owned();
 
-    let image_url = document
-        .select(&Selector::parse(".playerAvatarAutoSizeInner > img").unwrap())
-        .filter_map(|e| e.value().attr("src"))
-        .map(str::to_owned)
-        .collect::<String>();
+        let image_url = document
+            .select(&Selector::parse(".playerAvatarAutoSizeInner > img").unwrap())
+            .filter_map(|e| e.value().attr("src"))
+            .map(str::to_owned)
+            .collect::<String>();
+
+        (name, image_url)
+    };
+
+    wrapper
+        .log(format!(
+            "Successfully parsed profile with name of {name} and image url of {image_url}"
+        ))
+        .await;
 
     Ok(Profile {
         name,

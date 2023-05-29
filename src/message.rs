@@ -1,8 +1,8 @@
-use axum::Error;
+use crate::Profile;
 use axum::extract::ws::{Message, WebSocket};
+use axum::Error;
 use paris::error;
 use serde::{Deserialize, Serialize};
-use crate::Profile;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "tag", content = "fields")]
@@ -25,7 +25,7 @@ pub enum SteamMessageIn {
     RefreshProfile,
     StealProfile { name: String, image_url: String },
     FetchProfile { url: String },
-    ChangeName { name: String }
+    ChangeName { name: String },
 }
 
 pub struct WebsocketWrapper {
