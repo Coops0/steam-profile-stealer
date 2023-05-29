@@ -79,13 +79,22 @@ impl WebsocketWrapper {
         self.sm(SteamMessageOut::StatusUpdate { message }).await;
     }
 
-    pub async fn error<E: Into<anyhow::Error>>(&mut self, error: E) {
+    pub async fn error<E: Into<anyhow::Error> + std::fmt::Debug + ToString>(&mut self, error: E) {
         self.sm(
             SteamMessageOut::Error {
                 message: error.to_string(),
                 debug: format!("{error:?}"),
             }
         ).await;
+    }
+
+    // clone w/o websocket
+    pub fn fake_clone(&self) -> Self {
+        Self {
+            cookie: self.cookie.clone(),
+            profile: self.profile.clone(),
+            ws: None,
+        }
     }
 }
 

@@ -1,23 +1,28 @@
 use crate::message::{SteamMessageOut, WebsocketWrapper};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use tokio::join;
 use crate::multipart::multipart_form::{clear_aliases, update_image, update_name};
 use crate::multipart::profile_details::new_name_details;
 
-async fn update(wrapper: &mut WebsocketWrapper, new_name: &str, image_url: Option<&str>) -> Result<()> {
-    wrapper.log("Gathering profile data to use in name request...");
+pub async fn update(wrapper: &mut WebsocketWrapper, new_name: &str, image_url: Option<&str>) -> Result<()> {
+    wrapper.log("Gathering profile data to use in name request...").await;
     let (session_id, fields) = new_name_details(wrapper, new_name)
         .await
         .context("Failed to get new name details")?;
 
     wrapper.log("Successfully got profile details!").await;
 
+    let fc = wrapper.fake_clone();
+
     let name = if let Some(image_url) = image_url {
         wrapper.log("Simultaneously updating image and name...").await;
 
+        let dumb = fc.fake_clone();
+        let ass = fc.fake_clone();
+
         let (name, img) = join!(
-            update_name(wrapper, &session_id, Vec::from(fields.clone())),
-            update_image(wrapper, &session_id, image_url)
+            update_name(dumb, &session_id, Vec::from(fields.clone())),
+            update_image(ass, &session_id, image_url)
         );
 
         wrapper.log("Both functions finished, processioning responses...").await;
@@ -30,13 +35,14 @@ async fn update(wrapper: &mut WebsocketWrapper, new_name: &str, image_url: Optio
 
             wrapper.log("Successfully updated image!").await;
         } else {
-            return Err(anyhow!(img).context("Failed to update image."));
+            bail!("Failed to update img -> {img:?}");
         }
 
         name
     } else {
+        let dude = fc.fake_clone();
         wrapper.log("Only updating name...").await;
-        update_name(wrapper, &session_id, Vec::from(fields)).await
+        update_name(dude, &session_id, Vec::from(fields)).await
     };
 
     let name = name.context("Failure updating name!")?;
@@ -47,12 +53,12 @@ async fn update(wrapper: &mut WebsocketWrapper, new_name: &str, image_url: Optio
             .await;
 
         wrapper.log("Successfully updated name! Clearing aliases...").await;
-        clear_aliases(wrapper, &session_id).await
+        clear_aliases(fc, &session_id).await
             .context("Error clearing aliases!")?;
 
         wrapper.log("Successfully cleared aliases!").await;
     } else {
-        return Err(anyhow!(o).context("Failed to update name!"));
+        bail!("Failed to update name -> {name:?}");
     };
 
     Ok(())

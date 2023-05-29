@@ -1,6 +1,8 @@
+use anyhow::anyhow;
 use crate::{message::{SteamMessageIn, SteamMessageOut, WebsocketWrapper}, profile::{get_self_profile, parse_profile}, Profile, stealer::{headless_steam, image_to_base64}};
 use axum::extract::ws::{Message, WebSocket};
 use paris::error;
+use crate::multipart::update::update;
 
 pub async fn websocket(ws: WebSocket) {
     let mut wrapper = WebsocketWrapper::new(Some(ws));
@@ -26,7 +28,7 @@ pub async fn websocket(ws: WebSocket) {
         };
 
         if wrapper.cookie.is_empty() && !matches!(msg, SteamMessageIn::Cookie { .. }) {
-            wrapper.error("You need to set a cookie first.").await;
+            wrapper.error(anyhow!("You need to set a cookie first.")).await;
             continue;
         }
 
@@ -67,39 +69,28 @@ pub async fn websocket(ws: WebSocket) {
                 if !image_url.starts_with("https://avatars.cloudflare.steamstatic.com/")
                     && !image_url.starts_with("https://avatars.akamai.steamstatic.com/")
                 {
-                    wrapper.error("Bad image url!").await;
+                    wrapper.error(anyhow!("Bad image url!")).await;
                     continue;
                 }
 
                 if wrapper.profile.url.is_empty() {
                     wrapper
-                        .error("Nno profile url has been set yet? This should be impossible.")
+                        .error(anyhow!("No profile url has been set yet? This should be impossible."))
                         .await;
                     continue;
                 }
 
-                let base64_image = match image_to_base64(&mut wrapper, &image_url).await {
-                    Ok(o) => o,
-                    Err(e) => {
-                        wrapper.error(e).await;
-                        continue;
-                    }
-                };
 
-                if let Err(e) = headless_steam(&mut wrapper, &name, Some(&base64_image)).await {
-                    error!("Error running headless steam {e:?}");
+                if let Err(e) = update(&mut wrapper, &name, Some(&image_url)).await {
+                    error!("Error updating something {e:?}");
                     wrapper.error(e).await;
                     continue;
                 }
 
-                wrapper
-                    .sm(SteamMessageOut::PictureChange { url: image_url })
-                    .await;
-
                 wrapper.log("Successfully stole profile!").await;
             }
             SteamMessageIn::ChangeName { name } => {
-                match headless_steam(&mut wrapper, &name, None).await {
+                match update(&mut wrapper, &name, None).await {
                     Ok(_) => {
                         wrapper.log("Successfully changed name!").await;
                     }

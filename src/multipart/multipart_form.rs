@@ -11,7 +11,7 @@ use crate::multipart::data_profile_edit::DataProfileEdit;
 use crate::multipart::profile_details::new_name_details;
 
 pub async fn update_name(
-    wrapper: &WebsocketWrapper,
+    wrapper: WebsocketWrapper,
     session_id: &str,
     fields: Vec<(String, String)>
 ) -> Result<UpdateNameResponse> {
@@ -44,7 +44,7 @@ pub struct UpdateNameResponse {
     pub err_msg: String,
 }
 
-pub async fn update_image(wrapper: &WebsocketWrapper, session_id: &str, image_url: &str) -> Result<UpdateImageResponse> {
+pub async fn update_image(wrapper: WebsocketWrapper, session_id: &str, image_url: &str) -> Result<UpdateImageResponse> {
     let mut mpart = MultipartRequest::new("------WebKitFormBoundaryhSUnLTjMGhbdZ0Qg");
     // stream
 
@@ -82,7 +82,7 @@ pub struct UpdateImageResponse {
     pub message: String,
 }
 
-pub async fn clear_aliases(wrapper: &WebsocketWrapper, session_id: &str) -> Result<()> {
+pub async fn clear_aliases(wrapper: WebsocketWrapper, session_id: &str) -> Result<()> {
     let res = Client::new()
         .post(format!("{}/ajaxaliases/", wrapper.profile.url))
         .header(header::COOKIE, format!("steamLoginSecure={};sessionid={session_id}", wrapper.cookie))

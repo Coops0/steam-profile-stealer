@@ -10,7 +10,7 @@ type SteamMessageIn =
     | { tag: "status_update", fields: { message: string } }
     | { tag: "self_profile", fields: { profile: Profile } }
     | { tag: "profile_fetch", fields: { profile: Profile } }
-    | { tag: "error", fields: { message: string } }
+    | { tag: "error", fields: { message: string, debug: string } }
     | { tag: "name_change", fields: { name: string } }
     | { tag: "picture_change", fields: { url: string } };
 
