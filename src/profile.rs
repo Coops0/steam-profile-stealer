@@ -31,7 +31,7 @@ pub async fn get_self_profile(wrapper: &mut WebsocketWrapper) -> Result<Profile>
         .and_then(|l| l.to_str().ok())
         .unwrap_or_default();
 
-    if location.is_empty() || !location.starts_with("https://steamcommunity.com/id/") {
+    if location.is_empty() || (!location.starts_with("https://steamcommunity.com/id/") && !location.starts_with("https://steamcommunity.com/profiles/")) {
         bail!("Redirect is not a profile!");
     }
 

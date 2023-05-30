@@ -52,10 +52,8 @@ pub async fn websocket(ws: WebSocket) {
                     }
                 }
             }
-            SteamMessageIn::FetchProfile { mut url } => {
-                if !url.starts_with("https://steamcommunity.com/id/") {
-                    url = format!("https://steamcommunity.com/id/{url}");
-                }
+            SteamMessageIn::FetchProfile { url } => {
+                let url = url_normalizer(url);
 
                 match parse_profile(&mut wrapper, &url).await {
                     Ok(profile) => {
@@ -102,4 +100,17 @@ pub async fn websocket(ws: WebSocket) {
             }
         }
     }
+}
+
+fn url_normalizer(url: String) -> String {
+    if url.starts_with("https://steamcommunity.com/profiles/") || url.starts_with("https://steamcommunity.com/id/") {
+        return url;
+    }
+
+    if url.len() == 17 {
+        return format!("https://steamcommunity.com/profiles/{url}");
+    }
+
+
+    format!("https://steamcommunity.com/id/{url}")
 }
