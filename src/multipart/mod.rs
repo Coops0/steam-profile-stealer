@@ -10,7 +10,7 @@ mod tests {
 
     use crate::multipart::profile_details::new_name_details;
 
-    const AUTH_COOKIE: &str = "76561198286609782%7C%7CeyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MEQzNV8yMjk2RTJBRV8xMDFERSIsICJzdWIiOiAiNzY1NjExOTgyODY2MDk3ODIiLCAiYXVkIjogWyAid2ViIiBdLCAiZXhwIjogMTY4NTM5ODk4MiwgIm5iZiI6IDE2NzY2NzE0MjUsICJpYXQiOiAxNjg1MzExNDI1LCAianRpIjogIjBEMzNfMjI5NkUyQUFfNEFDOEIiLCAib2F0IjogMTY4NTMxMTQyNCwgInJ0X2V4cCI6IDE3MDMzNjg5ODgsICJwZXIiOiAwLCAiaXBfc3ViamVjdCI6ICI3MS4xOTEuODQuMjgiLCAiaXBfY29uZmlybWVyIjogIjcxLjE5MS44NC4yOCIgfQ.krbOuPTuGDTSP7y0oDfr-YwLLQKGnFV_qke5m-dtgIfeWynjFH_MTvdJ4Be9j9uSmHwcZMxj7G3NA65G4fYFCQ";
+    const AUTH_COOKIE: &str = "";
 
     #[tokio::test]
     async fn get_details_test() -> Result<()> {
